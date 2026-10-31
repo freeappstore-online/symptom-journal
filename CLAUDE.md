@@ -26,7 +26,7 @@ Guide: https://docs.freeappstore.online/getting-started/#build-your-app-on-the-s
 
 ## SDK
 
-This app uses `@freeappstore/sdk` (v0.14.30+). Available modules:
+This app uses `@freeappstore/sdk` (v0.16.0+). Available modules:
 
 - `fas.auth` — OAuth sign-in (SSO across all apps). **Always offer both GitHub and Google sign-in.**
 - `fas.kv` — per-user storage (1MB, 100 keys)
@@ -73,7 +73,7 @@ Tools: `create_app`, `update_files`, `read_file`, `list_files`, `agent_build`, `
 ## Styling
 
 Reuse SDK or local React components for repeated patterns.
-Use Tailwind 4 token utilities (`bg-paper text-ink border-line bg-popover`) for layout and one-offs.
+Use Tailwind 4 token utilities (`bg-paper bg-panel text-ink border-line bg-popover`) for layout and one-offs.
 Keep tokens, `@theme`, `@source` and base rules in `web/src/index.css`; no feature CSS classes.
 Inline styles are only for commented dynamic values; never inject CSS at runtime.
 Floating surfaces use opaque `--popover`; glass uses `--panel-glass` with backdrop blur.

@@ -248,8 +248,8 @@ a:focus-visible {
   }
 }
 
-} /* end @layer base */
-
 /* Shell's text-size preference scales rem-based app typography. */
 :root[data-text='lg'] { font-size: 112.5%; }
 :root[data-text='sm'] { font-size: 87.5%; }
+
+} /* end @layer base */
