@@ -1,4 +1,57 @@
 @import "tailwindcss";
+/* Relative to web/src; pnpm installs the SDK under web/node_modules. */
+@source "../node_modules/@freeappstore/sdk/dist";
+@source "../../node_modules/@freeappstore/sdk/dist";
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-panel: var(--panel);
+  --color-panel-glass: var(--panel-glass);
+  --color-popover: var(--popover);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-hover: var(--accent-hover);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-sky-deep: var(--sky-deep);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-mint-deep: var(--mint-deep);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-scrim: var(--scrim);
+  --radius: var(--radius);
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-lg, var(--radius));
+  --shadow-sm: var(--shadow);
+  --shadow-lg: var(--shadow-lg, var(--shadow));
+}
+
+@theme {
+  --animate-sdk-fade-in: sdk-fade-in 150ms ease-out;
+  --animate-sdk-slide-up: sdk-slide-up 200ms ease-out;
+  --animate-sdk-drawer: sdk-drawer 200ms ease-out;
+  @keyframes sdk-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sdk-slide-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sdk-drawer {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+}
 
 @layer base {
 
@@ -10,7 +63,8 @@
   --muted: #666666;
   --line: rgba(0, 0, 0, 0.08);
   --line-strong: rgba(0, 0, 0, 0.14);
-  --panel: rgba(255, 255, 255, 0.72);
+  --panel: #ffffff;
+  --panel-glass: rgba(255, 255, 255, 0.72);
   --panel-strong: rgba(255, 255, 255, 0.88);
   --panel-quiet: rgba(255, 255, 255, 0.6);
   --accent: #d86f4d;
@@ -42,6 +96,11 @@
   --shadow-card: 0 12px 28px rgba(26, 41, 81, 0.08);
 
   /* Tokens the SDK components read */
+  --popover: var(--paper);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --success-soft: color-mix(in srgb, var(--success) 15%, var(--paper));
+  --warning-soft: color-mix(in srgb, var(--warning) 15%, var(--paper));
+  --danger-soft: color-mix(in srgb, var(--danger) 15%, var(--paper));
   --ink-strong: var(--ink);
   --accent-hover: var(--accent-deep);
   --radius: 0.75rem;
@@ -57,7 +116,8 @@
   --muted: #888888;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
-  --panel: rgba(18, 18, 18, 0.8);
+  --panel: #121212;
+  --panel-glass: rgba(18, 18, 18, 0.8);
   --panel-strong: rgba(18, 18, 18, 0.92);
   --panel-quiet: rgba(22, 22, 22, 0.8);
   --accent: #ff9b76;

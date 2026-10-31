@@ -47,7 +47,7 @@ function About() {
   return (
     <>
       <PageHeader title="About" />
-      <p className="text-[var(--muted)]">
+      <p className="text-muted">
         APPNAME is a free app on <a href="https://freeappstore.online" className="underline">FreeAppStore</a>.
       </p>
     </>

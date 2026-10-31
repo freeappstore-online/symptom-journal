@@ -69,3 +69,12 @@ Connect to the FreeAppStore MCP server for SDK docs, deploy status, and log quer
 ```
 
 Tools: `create_app`, `update_files`, `read_file`, `list_files`, `agent_build`, `agent_status`, `list_apps`, `app_info`, `deploy_status`, `app_logs`, `platform_guide`, `sdk_reference`.
+
+## Styling
+
+Reuse SDK or local React components for repeated patterns.
+Use Tailwind 4 token utilities (`bg-paper text-ink border-line bg-popover`) for layout and one-offs.
+Keep tokens, `@theme`, `@source` and base rules in `web/src/index.css`; no feature CSS classes.
+Inline styles are only for commented dynamic values; never inject CSS at runtime.
+Floating surfaces use opaque `--popover`; glass uses `--panel-glass` with backdrop blur.
+See [SDK styling](https://github.com/freeappstore-online/platform/blob/main/docs/ui.md#styling).
