@@ -33,7 +33,7 @@ export function PhotoEditor({value,onChange,onBusy}: {value: EntryPhoto[];onChan
 
     {cameraOpen&&<CameraCapture onClose={()=>setCameraOpen(false)} onCapture={file=>{setCameraOpen(false);void add([file]);}} onChooseFile={()=>{setCameraOpen(false);upload.current?.click();}}/>}
     <input ref={upload} type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" aria-label="Choose an entry photo" onChange={e=>{void add(Array.from(e.target.files ?? []));e.target.value="";}} />
-    <p className="text-xs text-muted">Saved on this device. Resized copies are included in reports; keep the originals.</p>
+    <p className="text-xs text-muted">Photos are resized. Keep your originals.</p>
     {busy && <p role="status" className="text-sm">Preparing photo…</p>}
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     <div className="space-y-4">{value.map((p,i)=><div key={p.id} className="rounded-2xl bg-sky-soft p-3">

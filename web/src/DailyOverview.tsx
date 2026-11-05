@@ -10,7 +10,7 @@ export function DailyOverview({rows,onOpen}:{rows:Observation[];onOpen:(id:strin
  return <section aria-label="Symptoms by day" className="space-y-4 rounded-3xl bg-panel p-4 sm:p-5">
   <div className="flex items-center justify-between gap-3"><h2 className="text-lg">Symptoms by day</h2><select aria-label="Daily overview period" value={period} onChange={e=>setPeriod(Number(e.target.value))} className="min-h-11 rounded-xl bg-paper-deep px-3 text-sm"><option value={7}>7 days</option><option value={28}>28 days</option><option value={90}>3 months</option></select></div>
   <input type="search" aria-label="Search overview symptoms" placeholder="Search symptoms" value={query} onChange={e=>setQuery(e.target.value)} className="min-h-11 w-full rounded-xl bg-paper px-3 text-sm"/>
-  <p className="text-xs text-muted">Larger dots mean higher daily average severity. Tap a day to open its latest log.</p>
+  <p className="text-xs text-muted">Dot size: average severity</p>
   <div className="overflow-x-auto" tabIndex={0} aria-label="Scroll daily symptom chart">
    <div className="min-w-max">
     <div className="flex"><div className="sticky left-0 z-10 w-36 shrink-0 bg-panel"/>{days.map(d=><div key={+d} className="w-10 shrink-0 text-center text-xs text-muted"><span className="block">{d.toLocaleDateString(undefined,{weekday:"narrow"})}</span>{d.getDate()}</div>)}</div>

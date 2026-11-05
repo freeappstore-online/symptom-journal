@@ -63,7 +63,7 @@ export function HistoryRecap({
               <option value={1}>Daily</option><option value={7}>Weekly</option>
             </select>
           </div>
-          <p className="text-xs text-muted">{metric === "severity" ? "Average recorded score. Gaps mean no logs." : "Number of logs, not the number of symptom episodes."}{groupDays === 7 && " Weekly groups start at the beginning of this period."}</p>
+
           <dl className="grid grid-cols-3 gap-3 border-t border-line pt-5">
             {[ ["Logs", String(filtered.length)], [single[0]?.mood ? "Avg. intensity" : "Avg. severity", mean === null ? "—" : `${mean.toFixed(1)}/10`], ["Highest", peak === null ? "—" : `${peak}/10`] ].map(([label,value]) =>
               <div key={label}><dt className="text-xs text-muted">{label}</dt><dd className="mt-1 text-xl font-bold text-ink-strong">{value}</dd></div>)}
@@ -76,7 +76,7 @@ export function HistoryRecap({
                 {/* Dynamic width reflects the share of selected entries containing this observation. */}
                 <div className="h-full rounded-full bg-accent" style={{width: `${item.count/item.total*100}%`}} />
               </div>
-            </li>)}</ul> : <p className="mt-2 text-sm text-muted">No accompanying symptoms recorded in these logs.</p>}
+            </li>)}</ul> : <p className="mt-2 text-sm text-muted">None recorded together.</p>}
           </div>
         </div>
       </div>
@@ -100,9 +100,7 @@ export function HistoryRecap({
             </select>
           </label>
         </div>
-        <p className="mt-3 text-xs text-muted">
-          Time across the chart · Severity vertically, 0–10.
-        </p>
+
         {recent.length ? (
           <Plot
             rows={recent}
@@ -114,7 +112,7 @@ export function HistoryRecap({
           <p className="py-8 text-sm text-muted">No logs in this period.</p>
         )}
         <p className="text-xs text-muted">
-          Dots mark individual logs. Bands show recorded duration when visible at this scale.
+          Dots: logs · Bands: duration
         </p>
       </div>
       {selectedRow && (

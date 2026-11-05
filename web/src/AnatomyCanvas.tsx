@@ -467,7 +467,6 @@ function CanvasSurface(props: Props) {
           </label>
           <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>Reset view</button>
         </div>
-        <p className="text-xs text-muted">One finger: move · Two fingers: turn or pinch to zoom · Scroll outside the map</p>
       </div>
     </div>
   );
