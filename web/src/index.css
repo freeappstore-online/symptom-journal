@@ -50,6 +50,19 @@
 }
 
 @theme {
+  --animate-gesture-tap: gesture-tap 2s ease-in-out infinite;
+  --animate-gesture-ripple: gesture-ripple 2s ease-out infinite;
+  --animate-gesture-turn: gesture-turn 3s ease-in-out infinite;
+  --animate-gesture-pan: gesture-pan 3s ease-in-out infinite;
+  --animate-gesture-pinch-a: gesture-pinch-a 3s ease-in-out infinite;
+  --animate-gesture-pinch-b: gesture-pinch-b 3s ease-in-out infinite;
+  @keyframes gesture-tap { 0%,60%,100% {transform:translateY(4px)} 25%,40% {transform:translateY(0)} }
+  @keyframes gesture-ripple { 0%,20% {opacity:0} 30% {opacity:1} 65%,100% {opacity:0} }
+  @keyframes gesture-turn { 0%,100% {transform:translateX(-9px)} 50% {transform:translateX(9px)} }
+  @keyframes gesture-pan { 0%,100% {transform:translateY(7px)} 50% {transform:translateY(-7px)} }
+  @keyframes gesture-pinch-a { 0%,100% {transform:translate(-2px,2px)} 50% {transform:translate(-12px,12px)} }
+  @keyframes gesture-pinch-b { 0%,100% {transform:translate(2px,-2px)} 50% {transform:translate(12px,-12px)} }
+
   --animate-sdk-fade-in: sdk-fade-in 150ms ease-out;
   --animate-sdk-slide-up: sdk-slide-up 200ms ease-out;
   --animate-sdk-drawer: sdk-drawer 200ms ease-out;

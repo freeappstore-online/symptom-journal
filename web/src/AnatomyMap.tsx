@@ -1,3 +1,4 @@
+import { GestureGuide } from "./GestureGuide";
 import { LibrarySelect } from "./LibrarySelect";
 import { detailedSurfaceLocation } from "./surface-detail";
 import { SubregionField } from "./SubregionField";
@@ -149,12 +150,7 @@ export function AnatomyPicker({
       <div className="flex items-center justify-between gap-3"><p className="text-sm text-muted">Tap a body part, or choose its name.</p><button type="button" className="min-h-11 shrink-0 text-sm font-bold text-accent underline" onClick={()=>setShowHelp(true)}>How to move</button></div>
       <Modal open={showHelp} onClose={()=>setShowHelp(false)} title="Explore the body map" maxWidth={420}>
         <div className="space-y-4">
-          <ul className="divide-y divide-line text-sm">
-            <li className="py-3"><strong>Tap</strong> a body part to select it.</li>
-            <li className="py-3"><strong>Drag with one finger</strong> to turn the body.</li>
-            <li className="py-3"><strong>Pinch with two fingers</strong> to zoom in or out.</li>
-            <li className="py-3"><strong>Slide two fingers</strong> to move up, down or sideways.</li>
-          </ul>
+          <GestureGuide/>
           <p className="text-xs text-muted">Scroll the page outside the map. The arrow and zoom buttons work too.</p>
           <button type="button" className={`${buttonPrimary} w-full`} onClick={()=>setShowHelp(false)}>Start mapping</button>
         </div>

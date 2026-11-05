@@ -1,3 +1,4 @@
+import { BodyHistory } from "./BodyHistory";
 import { LibrarySelect } from "./LibrarySelect";
 import { RecordTiles } from "./RecordTiles";
 import { entrySymptoms, entryTitle, libraryScope, quickOptions } from "./logging";
@@ -613,6 +614,7 @@ export default function App() {
 
                   </label>
                   <TemperatureHistory entries={historyEntries} onOpen={id=>{const e=entries.find(e=>e.id===id);if(e)openEntry(e);}}/>
+                  <BodyHistory entries={historyEntries} onOpen={id=>{const found=entries.find(e=>e.id===id);if(found)openEntry(found);}}/>
                   <HistoryRecap
                     key={profile.id}
                     entries={historyEntries}

@@ -31,6 +31,7 @@ function model(url: string) {
   return pending;
 }
 type Props = {
+  historyMarks?: {anchor: Anchor; score: number}[];
   model?: SurfaceModel;
   surface?: Surface3D;
   onPick?: (anchor: Anchor) => void;
@@ -141,6 +142,15 @@ function CanvasSurface(props: Props) {
     function paint() {
       clearOverlay();
       const s = current.current.surface;
+      if (current.current.historyMarks?.length && !props.reference) {
+        const css=getComputedStyle(el!);
+        for(const mark of current.current.historyMarks) {
+          const dot=new THREE.Mesh(new THREE.SphereGeometry(0.008,16,12),new THREE.MeshBasicMaterial({color:css.getPropertyValue(mark.score>=7?"--pain":mark.score>=4?"--sky":"--accent").trim()}));
+          dot.position.copy(vec(mark.anchor.position)).addScaledVector(vec(mark.anchor.normal),0.004);
+          overlay.add(dot);
+        }
+        draw();return;
+      }
       if (!s || props.reference) {
         draw();
         return;
@@ -369,14 +379,14 @@ function CanvasSurface(props: Props) {
       renderer.domElement.remove();
     };
   }, [attempt, props.reference, modelId]);
-  useEffect(() => { api.current?.paint(); }, [props.surface]);
+  useEffect(() => { api.current?.paint(); }, [props.surface, props.historyMarks]);
   useEffect(() => { api.current?.view("reset"); }, [props.focus]);
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
-          className={`${props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
+          className={`${props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
         {status === "ready" && <div role="group" aria-label="Move and zoom body map" className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
