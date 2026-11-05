@@ -1,7 +1,8 @@
+import { LibrarySelect } from "./LibrarySelect";
 import { detailedSurfaceLocation } from "./surface-detail";
 import { SubregionField } from "./SubregionField";
 import { lazy, Suspense, useState, useRef, useEffect, type ReactNode } from "react";
-import { Spinner } from "@freeappstore/sdk/ui";
+import { Modal, Spinner } from "@freeappstore/sdk/ui";
 import {
   getBodyRegions,
   MODEL_ID,
@@ -125,6 +126,7 @@ export function AnatomyPicker({
   skipLabel: string;
 }) {
   const [selected, setSelected] = useState<Location | null>(initialValue?.surface3d?.model===model ? initialValue : null);
+  const [showHelp,setShowHelp] = useState(true);
   const [markMode,setMarkMode] = useState<"region"|"area"|"point">("region");
   const [guide,setGuide] = useState<"idle"|"ask-area"|"area"|"ask-point"|"point"|"done">(initialValue ? "done" : "idle");
   const promptButton = useRef<HTMLButtonElement>(null);
@@ -144,7 +146,19 @@ export function AnatomyPicker({
   }
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted">Tap a body part, or choose its name.</p>
+      <div className="flex items-center justify-between gap-3"><p className="text-sm text-muted">Tap a body part, or choose its name.</p><button type="button" className="min-h-11 shrink-0 text-sm font-bold text-accent underline" onClick={()=>setShowHelp(true)}>How to move</button></div>
+      <Modal open={showHelp} onClose={()=>setShowHelp(false)} title="Explore the body map" maxWidth={420}>
+        <div className="space-y-4">
+          <ul className="divide-y divide-line text-sm">
+            <li className="py-3"><strong>Tap</strong> a body part to select it.</li>
+            <li className="py-3"><strong>Drag with one finger</strong> to turn the body.</li>
+            <li className="py-3"><strong>Pinch with two fingers</strong> to zoom in or out.</li>
+            <li className="py-3"><strong>Slide two fingers</strong> to move up, down or sideways.</li>
+          </ul>
+          <p className="text-xs text-muted">Scroll the page outside the map. The arrow and zoom buttons work too.</p>
+          <button type="button" className={`${buttonPrimary} w-full`} onClick={()=>setShowHelp(false)}>Start mapping</button>
+        </div>
+      </Modal>
       <div className="relative">
         <div inert={asking} className={asking ? "pointer-events-none select-none blur-sm" : ""}>
           <Viewer model={model} onPick={pick} focus={selected?.surface3d?.focus} surface={selected?.surface3d} />
@@ -186,30 +200,7 @@ export function AnatomyPicker({
       ) : !selected ? (
         <label className="block text-sm font-semibold">
           Choose by name
-          <select
-            aria-label="Body region"
-            className={`${inputClass} mt-2`}
-            value=""
-            onChange={(e) => {
-              const r = bodyRegions.find((r) => r.id === e.target.value);
-              if (r)
-                chooseRegion(
-                  surfaceLocation(
-                    r,
-                    { position: r.at, normal: { x: 0, y: 0, z: 1 } },
-                    "front",
-                    model,
-                  ),
-                );
-            }}
-          >
-            <option value="">Choose a body region</option>
-            {bodyRegions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          <LibrarySelect label="Search body regions" value="" options={bodyRegions.map(r=>({id:r.id,label:r.name}))} onChange={id=>{const r=bodyRegions.find(r=>r.id===id);if(r)chooseRegion(surfaceLocation(r,{position:r.at,normal:{x:0,y:0,z:1}},"front",model));}}/>
         </label>
       ) : null}
       {!asking && !editing && <StepActions onSkip={onSkip} skipLabel={skipLabel} disabled={!selected || !ready} onNext={() => selected && onChoose(selected)} />}

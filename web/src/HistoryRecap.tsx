@@ -1,3 +1,5 @@
+import { DailyOverview } from "./DailyOverview";
+import { LibrarySelect } from "./LibrarySelect";
 import { useId, useState } from "react";
 import type { Entry } from "./store";
 import { observations, recentWindow, trendBuckets, recordedTogether, type TrendBucket, type Observation } from "./recap";
@@ -46,13 +48,11 @@ export function HistoryRecap({
   if (!all.length) return null;
   return (
     <section className="space-y-5" aria-label="History recap">
+      <DailyOverview rows={all} onOpen={onOpen}/>
       <div className="overflow-hidden rounded-3xl bg-panel shadow-sm">
         <div className="bg-hero-start px-5 py-5 text-on-hero sm:px-6">
           <label className="block text-xs font-semibold uppercase tracking-widest" htmlFor="trend-symptom">Symptom history</label>
-          <select id="trend-symptom" aria-label="Symptom or mood" className="mt-2 min-h-12 w-full rounded-xl bg-hero-start text-lg font-bold text-on-hero" value={key}
-            onChange={e => { setChosen(e.target.value); setSelected(null); }}>
-            {series.map(([k,label]) => <option key={k} value={k}>{label}</option>)}
-          </select>
+          <LibrarySelect label="Symptom or mood" value={key??""} options={series.map(([id,label])=>({id,label}))} onChange={id=>{setChosen(id);setSelected(null);}}/>
         </div>
         <div className="space-y-5 p-5 sm:p-6">
           <label className="flex items-center justify-between gap-3 text-sm font-bold">Measure<select aria-label="Chart measure" className="min-h-11 rounded-xl bg-paper-deep px-4" value={metric} onChange={e=>{setMetric(e.target.value as "severity"|"frequency");setSelected(null);}}><option value="severity">Severity / intensity</option><option value="frequency">Frequency</option></select></label>

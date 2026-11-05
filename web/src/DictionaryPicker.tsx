@@ -26,8 +26,8 @@ export function DictionaryPicker({title,options,selected,multiple=false,onDone,o
     <div className="flex max-h-[70dvh] flex-col gap-3">
       <input autoFocus type="search" className={inputClass} aria-label={`Search ${title.toLowerCase()}`} placeholder="Search" onKeyDown={e=>{if(e.key==="Enter")e.preventDefault();}} value={query} onChange={e=>setQuery(e.target.value)}/>
       {categories.length>1 && <select aria-label="Library category" className={inputClass} value={category} onChange={e=>setCategory(e.target.value)}>{["All",...categories].map(c=><option key={c}>{c}</option>)}</select>}
-      <div className="flex items-center justify-between text-xs text-muted"><span>{multiple ? "Select any that apply" : "Choose one symptom"}</span><span>A–Z</span></div>
-      <div className="min-h-32 overflow-y-auto overscroll-contain" role="group" aria-label="Alphabetical symptoms">
+      <div className="flex items-center justify-between text-xs text-muted"><span>{multiple ? "Select any that apply" : "Choose one item"}</span><span>A–Z</span></div>
+      <div className="min-h-32 overflow-y-auto overscroll-contain" role="group" aria-label="Alphabetical library">
         {sections.map(section=><section key={section.letter} aria-label={section.letter}>
           <h3 className="sticky top-0 bg-paper px-3 py-2 text-sm">{section.letter}</h3>
           <div className="divide-y divide-line">{section.items.map(option=><label key={option.id} className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 px-3 py-3 text-sm ${draft.includes(option.id)?"bg-accent-soft font-semibold":"bg-panel"}`}>
@@ -38,7 +38,7 @@ export function DictionaryPicker({title,options,selected,multiple=false,onDone,o
             }}/>
           </label>)}</div>
         </section>)}
-        {!sections.length && <p role="status" className="py-8 text-center text-sm text-muted">No matching symptoms.</p>}
+        {!sections.length && <p role="status" className="py-8 text-center text-sm text-muted">No matching items.</p>}
       </div>
       {multiple && <button type="button" className={`${buttonPrimary} w-full shrink-0`} onClick={()=>onDone(draft)}>Done · {draft.length} selected</button>}
     </div>

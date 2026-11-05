@@ -1,9 +1,10 @@
+import { LibrarySelect } from "./LibrarySelect";
 import { SubregionField } from "./SubregionField";
 import { BodyOrientation } from "./BodyOrientation";
 import type { SurfaceModel } from "./anatomy";
 import { AnatomyPicker, AnatomySketch } from "./AnatomyMap";
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { inputClass, StepActions } from "./ui";
+import { StepActions } from "./ui";
 import { Tabs } from "@freeappstore/sdk/ui";
 import type { Location, Point } from "./store";
 import {
@@ -156,24 +157,7 @@ function RegionSelect({
   view: "front" | "back";
   onSelect: (name: string) => void;
 }) {
-  const id = useId();
-  return (
-    <label htmlFor={id} className="mb-4 block">
-      <span className="sr-only">Body part</span>
-      <select
-        id={id}
-        aria-label="Body part"
-        className={inputClass}
-        value={selected ?? ""}
-        onChange={(e) => onSelect(e.target.value)}
-      >
-        <option value="">Choose a body part</option>
-        {regions.map((r) => (
-          <option key={r.name}>{bodyRegion(r.name, view)}</option>
-        ))}
-      </select>
-    </label>
-  );
+  return <div className="mb-4"><LibrarySelect label="Body part" value={selected??""} options={regions.map(r=>({id:bodyRegion(r.name,view),label:bodyRegion(r.name,view)}))} onChange={onSelect}/></div>;
 }
 function svgPoint(e: PointerEvent<SVGSVGElement>): Point {
   const point = e.currentTarget.createSVGPoint();

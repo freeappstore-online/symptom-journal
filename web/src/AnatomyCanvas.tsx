@@ -86,8 +86,10 @@ function CanvasSurface(props: Props) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
     controls.enablePan = true;
-    controls.enableZoom = false; // Wheel and vertical swipes belong to the page.
-    renderer.domElement.style.touchAction = "pan-y";
+    controls.enableZoom = true;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+    renderer.domElement.style.touchAction = "none";
     controls.rotateSpeed = 0.65;
     controls.minDistance = 0.045;
     controls.maxDistance = 2.8;
@@ -374,7 +376,7 @@ function CanvasSurface(props: Props) {
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
-          className={`${props.readOnly ? "h-64" : props.focus ? "h-[min(42dvh,22rem)] min-h-60" : "h-[min(52dvh,26rem)] min-h-64"} w-full`}
+          className={`${props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
         {status === "ready" && <div role="group" aria-label="Move and zoom body map" className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
@@ -419,7 +421,7 @@ function CanvasSurface(props: Props) {
           </label>
           <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>Reset view</button>
         </div>
-        <p className="text-xs text-muted">Tap to select · Drag sideways to turn · Swipe up to scroll</p>
+        <p className="text-xs text-muted">One finger: turn · Two fingers: move or pinch to zoom · Scroll outside the map</p>
       </div>
     </div>
   );

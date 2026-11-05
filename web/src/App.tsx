@@ -1,3 +1,4 @@
+import { LibrarySelect } from "./LibrarySelect";
 import { RecordTiles } from "./RecordTiles";
 import { entrySymptoms, entryTitle, libraryScope, quickOptions } from "./logging";
 import type { LogCategory, SymptomRating } from "./store";
@@ -608,9 +609,8 @@ export default function App() {
               (profile ? (
                 <>
                   <label className="block space-y-2 text-sm font-bold">Body-part history
-                    <select aria-label="Filter history by body part" className={input} value={historyPart} onChange={e=>setHistoryPart(e.target.value)}>
-                      <option value="">All entries</option>{[...new Set(entries.flatMap(e=>e.location?[e.location.region,specificLocationName(e.location)]:[]))].sort().map(name=><option key={name}>{name}</option>)}
-                    </select>
+                    <LibrarySelect label="Filter history by body part" value={historyPart} onChange={setHistoryPart} options={[{id:"",label:"All entries"},...[...new Set(entries.flatMap(e=>e.location?[e.location.region,specificLocationName(e.location)]:[]))].sort().map(label=>({id:label,label}))]}/>
+
                   </label>
                   <TemperatureHistory entries={historyEntries} onOpen={id=>{const e=entries.find(e=>e.id===id);if(e)openEntry(e);}}/>
                   <HistoryRecap
