@@ -1,3 +1,4 @@
+import { GestureGuide } from "./GestureGuide";
 import { addAnatomyClothing, prepareFabricNormals } from "./anatomy-clothing";
 import { BodyOrientation } from "./BodyOrientation";
 import { bodyOrientation, type BodyOrientation as Orientation } from "./orientation";
@@ -31,6 +32,7 @@ function model(url: string) {
   return pending;
 }
 type Props = {
+  heatMetric?: "density" | "intensity";
   historyMarks?: {anchor: Anchor; score: number}[];
   model?: SurfaceModel;
   surface?: Surface3D;
@@ -53,6 +55,7 @@ function CanvasSurface(props: Props) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
+  const [help,setHelp] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [orientation, setOrientation] = useState<Orientation>("front");
   useEffect(() => {
@@ -88,8 +91,8 @@ function CanvasSurface(props: Props) {
     controls.enableDamping = false;
     controls.enablePan = true;
     controls.enableZoom = true;
-    controls.touches.ONE = THREE.TOUCH.ROTATE;
-    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+    controls.touches.ONE = THREE.TOUCH.PAN;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
     renderer.domElement.style.touchAction = "none";
     controls.rotateSpeed = 0.65;
     controls.minDistance = 0.045;
@@ -143,11 +146,42 @@ function CanvasSurface(props: Props) {
       clearOverlay();
       const s = current.current.surface;
       if (current.current.historyMarks?.length && !props.reference) {
-        const css=getComputedStyle(el!);
+        // Bin nearby observations to bound CPU work while preserving count and mean score.
+        const bins=new Map<string,{position:THREE.Vector3;normal:THREE.Vector3;count:number;sum:number}>();
         for(const mark of current.current.historyMarks) {
-          const dot=new THREE.Mesh(new THREE.SphereGeometry(0.008,16,12),new THREE.MeshBasicMaterial({color:css.getPropertyValue(mark.score>=7?"--pain":mark.score>=4?"--sky":"--accent").trim()}));
-          dot.position.copy(vec(mark.anchor.position)).addScaledVector(vec(mark.anchor.normal),0.004);
-          overlay.add(dot);
+          const p=mark.anchor.position,n=mark.anchor.normal;
+          const key=[p.x,p.y,p.z,n.x,n.y,n.z].map((v,i)=>Math.round(v*(i<3?80:2))).join(":");
+          const bin=bins.get(key);
+          if(bin){bin.count++;bin.sum+=mark.score;}else bins.set(key,{position:vec(p),normal:vec(n),count:1,sum:mark.score});
+        }
+        const samples=[...bins.values()].sort((a,b)=>b.count-a.count).slice(0,512);
+        const peakCount=Math.max(1,...samples.map(b=>b.count));
+        for(const mesh of targets) {
+          const geometry=mesh.geometry.clone();
+          const positions=geometry.getAttribute("fabricPosition")??geometry.getAttribute("position");
+          const normals=geometry.getAttribute("fabricNormal")??geometry.getAttribute("normal");
+          const colors=new Float32Array(positions.count*3), strength=new Float32Array(positions.count);
+          const p=new THREE.Vector3(),n=new THREE.Vector3(),color=new THREE.Color();
+          for(let i=0;i<positions.count;i++) {
+            p.fromBufferAttribute(positions,i);n.fromBufferAttribute(normals,i);
+            let weight=0,weightedScore=0;
+            for(const sample of samples) {
+              if(n.dot(sample.normal)<0.2)continue;
+              const d=p.distanceToSquared(sample.position), radius=0.035;
+              if(d>radius*radius*4)continue;
+              const w=Math.exp(-d/(2*radius*radius))*sample.count;
+              weight+=w;weightedScore+=w*sample.sum/sample.count;
+            }
+            const value=current.current.heatMetric==="density"?Math.min(1,weight/peakCount):weight?weightedScore/weight/10:0;
+            color.setHSL((1-value)*0.65,0.9,0.5);
+            colors.set([color.r,color.g,color.b],i*3);strength[i]=Math.min(0.85,weight*0.8);
+          }
+          geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
+          geometry.setAttribute("heatAlpha",new THREE.BufferAttribute(strength,1));
+          const material=new THREE.ShaderMaterial({vertexShader:`attribute vec3 color; attribute float heatAlpha; varying vec3 heatColor; varying float heatOpacity;
+            void main(){heatColor=color;heatOpacity=heatAlpha;gl_Position=projectionMatrix*modelViewMatrix*vec4(position+normal*0.0015,1.0);}`,
+            fragmentShader:`varying vec3 heatColor; varying float heatOpacity; void main(){if(heatOpacity<0.025)discard;gl_FragColor=vec4(heatColor,heatOpacity);#include <colorspace_fragment>\n}`.replace(";#include",";\n#include"),transparent:true,depthWrite:false});
+          overlay.add(new THREE.Mesh(geometry,material));
         }
         draw();return;
       }
@@ -379,16 +413,18 @@ function CanvasSurface(props: Props) {
       renderer.domElement.remove();
     };
   }, [attempt, props.reference, modelId]);
-  useEffect(() => { api.current?.paint(); }, [props.surface, props.historyMarks]);
+  useEffect(() => { api.current?.paint(); }, [props.surface, props.historyMarks, props.heatMetric]);
   useEffect(() => { api.current?.view("reset"); }, [props.focus]);
   return (
     <div className="space-y-3">
+      <Modal open={help} onClose={()=>setHelp(false)} title="Explore the body map" maxWidth={420}><GestureGuide/><button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(false)}>Got it</button></Modal>
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
           className={`${props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
+        <button type="button" aria-label="Open body map gesture guide" title="Gesture guide" className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-panel text-lg font-bold text-accent shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
         {status === "ready" && <div role="group" aria-label="Move and zoom body map" className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-panel shadow-sm">
             <button type="button" title="Move view up" aria-label="Move view up" className="flex size-11 items-center justify-center text-xl font-bold text-accent hover:bg-accent-soft" onClick={()=>api.current?.pan(1)}>↑</button>
@@ -431,7 +467,7 @@ function CanvasSurface(props: Props) {
           </label>
           <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>Reset view</button>
         </div>
-        <p className="text-xs text-muted">One finger: turn · Two fingers: move or pinch to zoom · Scroll outside the map</p>
+        <p className="text-xs text-muted">One finger: move · Two fingers: turn or pinch to zoom · Scroll outside the map</p>
       </div>
     </div>
   );

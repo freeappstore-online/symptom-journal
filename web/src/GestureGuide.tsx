@@ -1,8 +1,8 @@
 const demos = [
  {kind:"tap",title:"Tap to select",hint:"Choose a body part"},
- {kind:"turn",title:"Drag to turn",hint:"Use one finger"},
+ {kind:"turn",title:"Drag to turn",hint:"Use two fingers"},
  {kind:"pinch",title:"Pinch to zoom",hint:"Move two fingers apart or together"},
- {kind:"pan",title:"Slide to move",hint:"Move two fingers up, down or sideways"},
+ {kind:"pan",title:"Slide to move",hint:"Move one finger up, down or sideways"},
 ] as const;
 function Hand({two=false}:{two?:boolean}) {
  return <g fill="var(--panel)" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -16,7 +16,7 @@ export function GestureGuide() {
    {d.kind==="turn"&&<path d="M24 18H94m-9-7 9 7-9 7M33 11l-9 7 9 7" fill="none" stroke="currentColor" strokeWidth="2"/>}
    {d.kind==="pinch"&&<g fill="none" stroke="currentColor" strokeWidth="2"><path d="m29 37 12-12m-12 1v11h11M91 9 79 21m1-12h11v11"/><circle cx="49" cy="24" r="5" className="motion-safe:animate-gesture-pinch-a"/><circle cx="65" cy="24" r="5" className="motion-safe:animate-gesture-pinch-b"/></g>}
    {d.kind==="pan"&&<path d="M22 16v39m-6-32 6-7 6 7m-12 25 6 7 6-7" fill="none" stroke="currentColor" strokeWidth="2"/>}
-   <g className={d.kind==="tap"?"motion-safe:animate-gesture-tap":d.kind==="turn"?"motion-safe:animate-gesture-turn":d.kind==="pan"?"motion-safe:animate-gesture-pan":""}><Hand two={d.kind==="pinch"||d.kind==="pan"}/></g>
+   <g className={d.kind==="tap"?"motion-safe:animate-gesture-tap":d.kind==="turn"?"motion-safe:animate-gesture-turn":d.kind==="pan"?"motion-safe:animate-gesture-pan":""}><Hand two={d.kind==="pinch"||d.kind==="turn"}/></g>
   </svg>
   <figcaption><strong className="block text-sm">{d.title}</strong><span className="mt-1 block text-xs text-muted">{d.hint}</span></figcaption>
  </figure>)}</div>;

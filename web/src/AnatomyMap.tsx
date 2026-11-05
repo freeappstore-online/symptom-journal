@@ -151,7 +151,7 @@ export function AnatomyPicker({
       <Modal open={showHelp} onClose={()=>setShowHelp(false)} title="Explore the body map" maxWidth={420}>
         <div className="space-y-4">
           <GestureGuide/>
-          <p className="text-xs text-muted">Scroll the page outside the map. The arrow and zoom buttons work too.</p>
+          <p className="text-xs text-muted">Scroll the page outside the map. One finger moves the body; two fingers turn or pinch. The buttons work too.</p>
           <button type="button" className={`${buttonPrimary} w-full`} onClick={()=>setShowHelp(false)}>Start mapping</button>
         </div>
       </Modal>
