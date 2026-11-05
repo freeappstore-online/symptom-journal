@@ -3,8 +3,8 @@ import { Modal } from "@freeappstore/sdk/ui";
 import { buttonPrimary, inputClass } from "./ui";
 import { searchSuggestions } from "./symptom-catalogue";
 export type DictionaryOption = { id: string; label: string; category?: string };
-export function DictionaryPicker({title,options,selected,multiple=false,onDone,onClose}: {
-  title:string; options:DictionaryOption[]; selected:string[]; multiple?:boolean;
+export function DictionaryPicker({title,options,selected,multiple=false,maxSelections,onDone,onClose}: {
+  title:string; options:DictionaryOption[]; selected:string[]; multiple?:boolean; maxSelections?:number;
   onDone:(ids:string[])=>void; onClose:()=>void;
 }) {
   const id=useId();
@@ -32,7 +32,7 @@ export function DictionaryPicker({title,options,selected,multiple=false,onDone,o
           <h3 className="sticky top-0 bg-paper px-3 py-2 text-sm">{section.letter}</h3>
           <div className="divide-y divide-line">{section.items.map(option=><label key={option.id} className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 px-3 py-3 text-sm ${draft.includes(option.id)?"bg-accent-soft font-semibold":"bg-panel"}`}>
             <span>{option.label}</span>
-            <input type={multiple?"checkbox":"radio"} name={id} className="size-4 shrink-0 accent-accent" checked={draft.includes(option.id)} onChange={()=>{
+            <input type={multiple?"checkbox":"radio"} name={id} className="size-4 shrink-0 accent-accent" disabled={!!maxSelections && draft.length>=maxSelections && !draft.includes(option.id)} checked={draft.includes(option.id)} onChange={()=>{
               if(!multiple) {onDone([option.id]);return;}
               setDraft(d=>d.includes(option.id)?d.filter(v=>v!==option.id):[...d,option.id]);
             }}/>

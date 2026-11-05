@@ -1,3 +1,4 @@
+import { HistoryCalendar } from "./HistoryCalendar";
 import { BodyHistory } from "./BodyHistory";
 import { LibrarySelect } from "./LibrarySelect";
 import { RecordTiles } from "./RecordTiles";
@@ -614,7 +615,7 @@ export default function App() {
 
                   </label>
                   <TemperatureHistory entries={historyEntries} onOpen={id=>{const e=entries.find(e=>e.id===id);if(e)openEntry(e);}}/>
-                  <BodyHistory entries={historyEntries} onOpen={id=>{const found=entries.find(e=>e.id===id);if(found)openEntry(found);}}/>
+                  <BodyHistory entries={entries} onOpen={id=>{const found=entries.find(e=>e.id===id);if(found)openEntry(found);}}/>
                   <HistoryRecap
                     key={profile.id}
                     entries={historyEntries}
@@ -631,15 +632,8 @@ export default function App() {
                       placeholder="Search your diary"
                     />
                   </label>
-                  <EntryList
-                    groupByDay
-                    entries={historyEntries.filter((e) =>
-                      `${entryTitle(e)} ${e.location ? specificLocationName(e.location) : ""} ${(e.feelings ?? []).map((f) => f.name).join(" ")}`
-                        .toLowerCase()
-                        .includes(query.toLowerCase()),
-                    )}
-                    onOpen={openEntry}
-                  />
+                  <HistoryCalendar entries={historyEntries.filter(e=>`${entryTitle(e)} ${e.location?specificLocationName(e.location):""}`.toLowerCase().includes(query.toLowerCase()))}>{day=><EntryList entries={day} onOpen={openEntry}/>}</HistoryCalendar>
+
                   {entries.length > 0 && (
                     <button
                       className={secondary}
