@@ -1,14 +1,31 @@
 {
-  "name": "APPNAME",
-  "short_name": "APPNAME",
-  "description": "Free APPNAME app — part of FreeAppStore",
+  "name": "SymptomMap",
+  "short_name": "SymptomMap",
+  "description": "A personal symptom diary.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "background_color": "#e2ebf3",
+  "theme_color": "#006875",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "permissions": [
+    {
+      "name": "camera",
+      "reason": "Optionally take a photo to attach to a diary entry."
+    }
+  ],
+  "min_viewport_width": 320
 }

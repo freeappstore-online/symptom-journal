@@ -1,2 +1,8 @@
 packages:
   - web
+
+onlyBuiltDependencies:
+  - esbuild
+
+patchedDependencies:
+  '@freeappstore/sdk@0.16.0': patches/freeappstore-sdk-0.16.0.patch

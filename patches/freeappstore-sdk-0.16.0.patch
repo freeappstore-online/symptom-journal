@@ -1,0 +1,34 @@
+--- a/dist/logger.js
++++ b/dist/logger.js
+@@ -23,11 +23,8 @@
+         this.appId = appId;
+         this.apiBase = apiBase;
+         this.auth = auth;
+-        if (typeof window !== 'undefined') {
+-            this.installGlobalHandlers();
+-            this.loadFromStorage();
+-            this.startUploadTimer();
+-        }
++        // SymptomMap: no automatic error collection, stored logs or uploads.
++
+     }
+     // ── Public API ────────────────────────────────────────────────
+     debug(message, data) {
+@@ -94,6 +91,8 @@
+     }
+     // ── Private ───────────────────────────────────────────────────
+     add(level, category, message, data) {
++        // Zero telemetry, including errors caught by the SDK Shell.
++        return;
+         const entry = { ts: Date.now(), level, category, message, data };
+         // Attach build meta to first entry
+         if (!this.sessionLogged) {
+@@ -167,6 +166,8 @@
+         }, UPLOAD_INTERVAL_MS);
+     }
+     async uploadBatch() {
++        // Also disable explicit flush(), regardless of authentication state.
++        return;
+         // Serialize uploads: a manual flush() firing at the same instant as the
+         // interval tick would otherwise read the same watermark, slice the same
+         // batch, and POST it twice — the exact duplication the watermark prevents

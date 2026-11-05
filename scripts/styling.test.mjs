@@ -19,7 +19,7 @@ test('Tailwind compiles app tokens and SDK-only menu utilities', () => {
 
 test('elevated and floating surfaces remain opaque in both themes', () => {
   const light = source.match(/:root\s*\{([^}]+)\}/)[1];
-  const dark = source.match(/:root\[data-theme='dark'\]\s*\{([^}]+)\}/)[1];
+  const dark = source.match(/:root\[data-theme=['"]dark['"]\]\s*\{([^}]+)\}/)[1];
   for (const theme of [light, dark]) {
     for (const token of ['paper', 'panel']) {
       assert.match(theme, new RegExp('--' + token + ':\\s*#[0-9a-f]{6};', 'i'));

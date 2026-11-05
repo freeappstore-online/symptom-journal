@@ -1,24 +1,15 @@
 {
-  "name": "APPNAME",
+  "name": "symptom-map",
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "engines": {
     "node": ">=22"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/freeappstore-online/APPNAME.git"
-  },
   "scripts": {
-    "dev": "pnpm --filter @APPNAME/web dev",
-    "build": "pnpm --filter @APPNAME/web build",
-    "preview": "pnpm --filter @APPNAME/web preview",
-    "typecheck": "pnpm --filter @APPNAME/web exec tsc -b",
-    "test": "pnpm build && node --test scripts/styling.test.mjs"
+    "dev": "corepack pnpm --filter @symptom-map/web dev",
+    "build": "corepack pnpm --filter @symptom-map/web build",
+    "preview": "corepack pnpm --filter @symptom-map/web preview",
+    "typecheck": "corepack pnpm --filter @symptom-map/web exec tsc -b",
+    "test": "corepack pnpm build && node --test scripts/*.test.mjs"
   }
 }

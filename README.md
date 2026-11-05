@@ -1,41 +1,39 @@
-# template-standalone
+# SymptomMap
 
-The standalone-app template used by [`fas init`](https://github.com/freeappstore-online/platform/tree/main/packages/cli) to scaffold new free apps for [FreeAppStore](https://freeappstore.online).
+A mobile-first personal symptom diary for FreeAppStore. A working local-first development build.
 
-You almost certainly want to use the CLI, not clone this directly:
+## Run locally
 
-```bash
-npm i -g @freeappstore/cli
-fas init my-app
+Use Node 22+ and pnpm 10.30.3 (the version declared in package.json).
+
+```sh
+corepack pnpm install
+corepack pnpm dev
 ```
 
-The CLI clones this template, replaces every `APPNAME` placeholder with your app id, runs `git init`, and makes the first commit — the result is a runnable app you can `pnpm dev` immediately.
+Open the URL printed by Vite. Stop the server with Ctrl+C.
 
-## What's in here
+## Validate
 
-- `web/` — Vite + React + TypeScript + Tailwind 4 app, ESM-only.
-- `web/src/App.tsx` — the app wrapped in the SDK's `Shell` (`@freeappstore/sdk/ui`) with two starter screens, Home (`/`) and About (`/about`), declared in its `nav` prop. A new app renders the standard topbar, its navigation (`<nav aria-label="Main">`), an error boundary, toasts and an offline banner from the first render. No sign-in required.
-- `web/src/index.css` — brand fonts (Manrope + Fraunces) and the design tokens (`--paper`, `--ink`, `--accent`, …); dark mode via `:root[data-theme='dark']`, which the SDK sets from the system or the Shell's theme toggle.
-- `web/src/main.tsx` — React entry point.
-- `web/index.html` — links Manrope + Fraunces, sets PWA meta tags, references the manifest.
-- `web/public/manifest.json` — PWA manifest with `name`, `display`, `start_url`.
-- `package.json` — pnpm workspace, `dev` / `build` / `typecheck` / `test` scripts.
-- `.github/workflows/compliance.yml` — runs the same checks as `fas check` on every PR. Source of truth lives in the [`@freeappstore/compliance`](https://www.npmjs.com/package/@freeappstore/compliance) package.
-
-## Cloning manually (not recommended)
-
-If you really want to scaffold by hand:
-
-```bash
-git clone https://github.com/freeappstore-online/template-standalone my-app
-cd my-app
-# Replace APPNAME → my-app in package.json, web/index.html, web/src/App.tsx, README, etc.
-rm -rf .git && git init
-pnpm install && pnpm dev
+```sh
+corepack pnpm typecheck
+corepack pnpm test
 ```
 
-Then run `fas publish` to provision repo + hosting + DNS, or open the [submission form](https://github.com/freeappstore-online/submissions/issues/new) for maintainer review.
+Implemented: local profiles and age/sex confirmation, adult female front/back body map, area/spot refinement, optional no-location entry, symptom severity/time/duration/notes, physical symptoms and mood as an optional third step, editing/deletion, profile-specific history and search, JSON backup/restore, and printable reports (browser Save as PDF). Data persists in versioned localStorage without an account. No analytics or remote error reporting.
 
-## License
+Body artwork is an original approximate prototype, not reviewed clinical anatomy. Other age/sex profiles use a body-part list. Shading and markers are not constrained to the body outline. Charts, reviewed age-specific artwork, direct PDF generation and report date filters are not implemented yet.
 
-MIT.
+Use fictional data while evaluating this development build. Local profiles are not password-protected. Keep a JSON backup; browser site-data removal or device loss can erase the diary. Backups contain all local profiles. No automatic sync or recovery.
+
+See [product validation and decisions](docs/PRODUCT.md).
+
+Read [setup decisions and evidence](docs/SETUP.md) before the next development step.
+
+MIT licensed. [FreeAppStore guide](https://freeappstore.online/skills.md).
+
+
+### 3D anatomy prototype
+Adult female and male body selection use a rotatable MakeHuman-derived CC0 surface, with optional surface area and point marking. A separate BodyParts3D right-knee bone reference is available. Models are generic and region boundaries remain unreviewed clinically. See [anatomy decisions](docs/ANATOMY.md) and [asset credits/licences](web/public/anatomy/SOURCES.md). App code is MIT; third-party model assets retain the licences listed there.
+
+Adults can choose their reference body illustration independently of sex in profile setup. Under-18 profiles use the body-part list.

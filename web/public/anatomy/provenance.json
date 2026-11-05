@@ -1,0 +1,37 @@
+{
+  "makehuman_tree": "a8bc2d54ff0ac92e78ff71431b1023eda42bf482",
+  "source_sha256": {
+    "mh-base.obj": "8e761e6624b8f54536409135d1636da63b32486a90d4897f84e121d144f6fb4c",
+    "mh-female.target": "118379f6e8ba9266247fdb8788a20e1df40a239f97ced0b9905bcbcc74f6e820",
+    "mh-african.target": "92d61eeb3c164b421fd5a7c3537ee45e7e1a51de4d49bf312e19c3df2be1d8fc",
+    "mh-asian.target": "095fe79694fa19e1fe98d93009ec116199bd524e081c640351a10eccf2cca1eb",
+    "mh-license.md": "f6089cba01cb570a24712b41ab8a586ccd3cc5ef53dc266ca50b95c288956d2c",
+    "bp3d.zip": "9fbc713fffeee924a5a657d9813d84d7eb957bded63adb854931dd5e3eb61c97",
+    "bp3d-elements.txt": "3f5f6df1028eb122b30de77c711597b6bb8e5541658e5985859fd228adbf88ea",
+    "bp3d-names.txt": "9224080557053e6f1322f1e13ab27f0ecde0db19bb3b505f0631afad230eeebd",
+    "mh-male-caucasian.target": "70e228ba7164737dae664454394536fc5935fa48d333c1a97d77e2dc6eacc5f5",
+    "mh-male-african.target": "894abc1fbb3d28543a51fef16f89d5d4bdf9aa2e1534413339811a3d47818b7d",
+    "mh-male-asian.target": "ed2e8c191cb6b87b4a2d97c80486acb2604fa549316c7aa2a738a5d5a14334dc"
+  },
+  "output_sha256": {
+    "adult-female-v1.glb": "d3722e6e1db16991bd219580f7623f471e022c3b4cd4ba0c3bd998e06162b66b",
+    "right-knee-bones-v1.glb": "367dc821e86c23da8178b7d8f7653929968612eb53eb7dc5d400ced14e642349",
+    "adult-male-v1.glb": "d8fdb0673a2e79f3d5b8d94c206ed85edd407aaffe5834967b9be8ac71c3e8a4"
+  },
+  "knee_mesh_ids": {
+    "right femur": "FMA24474/FJ3365",
+    "right patella": "FMA24486/FJ3381",
+    "right tibia": "FMA24477/FJ3387",
+    "right fibula": "FMA24480/FJ3366"
+  },
+  "makehuman_blobs": {
+    "makehuman/data/3dobjs/base.obj": "d26635e9326e3cca30778fd7b9c00062b03cce09",
+    "makehuman/data/targets/macrodetails/caucasian-female-young.target": "9d1f0cbeedc9a6a51abe33f1ebb5fa7c5a7edbf1",
+    "makehuman/data/targets/macrodetails/african-female-young.target": "a7d2b130667cc81ecd1ca0598da9be27bec1864a",
+    "makehuman/data/targets/macrodetails/asian-female-young.target": "f862c96add11c31ab1ca75c69e1c67ae5e0e3d5f",
+    "LICENSE.ASSETS.md": "f3ede1fc3318f8d794e2cb51924186c62f02f71a",
+    "makehuman/data/targets/macrodetails/caucasian-male-young.target": "c3b82f92c5ced85599199cd184b0faf3b3fc6881",
+    "makehuman/data/targets/macrodetails/african-male-young.target": "dd5743e48700267d76596f575bf17b4b5cc3b3e0",
+    "makehuman/data/targets/macrodetails/asian-male-young.target": "8cd3ef3e9ddb06ee2d166f75f9ac10871251f938"
+  }
+}

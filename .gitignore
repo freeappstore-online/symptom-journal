@@ -9,3 +9,9 @@ dist
 
 # VibeCode QA reports (regenerated on each scan)
 .vibe-check/
+
+# Private collaboration notes never belong in this app repo
+PERSONAL_DECISIONS.md
+
+# Python asset conversion cache
+__pycache__/
