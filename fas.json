@@ -1,0 +1,6 @@
+{
+  "appId": "symptom-map",
+  "applicationRoot": "web",
+  "outputPath": "web/dist",
+  "buildCommand": "pnpm build"
+}
