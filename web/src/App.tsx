@@ -56,7 +56,7 @@ import {
 
 const NAV: NavItem[] = [
   { label: "Home", href: "/", title: "Home — Symptom Journal" },
-  { label: "History", href: "/history", title: "History — Symptom Journal" },
+  { label: "Summary", href: "/history", title: "Summary — Symptom Journal" },
   {
     label: "Backup & privacy",
     href: "/settings",
@@ -239,14 +239,14 @@ export default function App() {
                       : path === "/settings"
                         ? "Backup & privacy"
                         : path === "/history"
-                          ? "History"
+                          ? "Summary"
                           : !profile
                             ? "Who is using Symptom Journal?"
                             : `Hello, ${profile.name}`;
   return (
     <div className="pb-24 sm:pb-0 [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
-          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"history":i===2?"settings":"help"}/><span>{i===2?"Settings":item.label}</span></a>)}
+          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"help"}/><span>{i===2?"Settings":item.label}</span></a>)}
         </nav>}>
         <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10 [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong">
           <div className="print:hidden">
@@ -428,7 +428,7 @@ export default function App() {
                 <HomeOverview key={profile.id} entries={entries} onHistory={()=>navigate("/history")} onOpen={openEntry}/>
                 <h2 className="text-lg">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
-                <button className={`${secondary} w-full`} onClick={() => navigate("/history")}>View history →</button>
+                <button className={`${secondary} w-full`} onClick={() => navigate("/history")}>View summary →</button>
                 <p className="text-sm text-muted">
                   Saved in this browser. Keep a backup in case site data is
                   cleared.
@@ -702,7 +702,7 @@ export default function App() {
                   className={`${secondary} print:hidden`}
                   onClick={() => setStep("home")}
                 >
-                  Back to history
+                  Back to summary
                 </button>
               </>
             )}

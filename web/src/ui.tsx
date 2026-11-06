@@ -8,6 +8,7 @@ export const buttonPrimary =
 export const buttonSecondary =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-bold text-paper transition-colors hover:bg-accent-hover aria-pressed:ring-2 aria-pressed:ring-accent disabled:opacity-40";
 export type IconName =
+  | "chart"
   | "help"
   | "home"
   | "history"
@@ -42,7 +43,7 @@ export function Icon({
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {name === "help" ? <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2.5M12 17h.01"/></> : name === "home" ? <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></> : name === "history" ? <><path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7"/><path d="M12 7v5l3 2"/></> : name === "settings" ? <><path d="m9 3-.5 2.5-2 1.2L4 6l-2 3.5 2 1.8v2.4l-2 1.8L4 19l2.5-.7 2 1.2L9 22h6l.5-2.5 2-1.2 2.5.7 2-3.5-2-1.8v-2.4l2-1.8L20 6l-2.5.7-2-1.2L15 3Z"/><circle cx="12" cy="12.5" r="3"/></> : name === "photo" ? (<><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/></>) : name === "camera" ? (<><path d="m8 5 1-2h6l1 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2h4Z"/><circle cx="12" cy="12" r="4"/></>) : name === "plus" ? (
+      {name === "chart" ? <><path d="M4 3v17h17M8 15v-4M13 15V7M18 15v-7"/></> : name === "help" ? <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2.5M12 17h.01"/></> : name === "home" ? <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></> : name === "history" ? <><path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7"/><path d="M12 7v5l3 2"/></> : name === "settings" ? <><path d="m9 3-.5 2.5-2 1.2L4 6l-2 3.5 2 1.8v2.4l-2 1.8L4 19l2.5-.7 2 1.2L9 22h6l.5-2.5 2-1.2 2.5.7 2-3.5-2-1.8v-2.4l2-1.8L20 6l-2.5.7-2-1.2L15 3Z"/><circle cx="12" cy="12.5" r="3"/></> : name === "photo" ? (<><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/></>) : name === "camera" ? (<><path d="m8 5 1-2h6l1 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2h4Z"/><circle cx="12" cy="12" r="4"/></>) : name === "plus" ? (
         <path d="M12 5v14M5 12h14" />
       ) : name === "pin" ? (
         <>
