@@ -424,25 +424,7 @@ export default function App() {
                 <HomeOverview key={profile.id} entries={entries} onHistory={()=>navigate("/history")} onOpen={openEntry}/>
                 <h2 className="text-lg">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-lg font-bold">Recent entries</h2>
-                  <button
-                    className="min-h-11 text-sm text-accent underline"
-                    onClick={() => navigate("/history")}
-                  >
-                    View history
-                  </button>
-                </div>
-                {entries.length ? (
-                  <EntryList entries={entries.slice(0, 5)} onOpen={openEntry} />
-                ) : (
-                  <Panel>
-                    <EmptyState
-                      title="Nothing recorded yet"
-                      message="Add your first symptom when you’re ready."
-                    />
-                  </Panel>
-                )}
+                <button className={`${secondary} w-full`} onClick={() => navigate("/history")}>View history →</button>
                 <p className="text-sm text-muted">
                   Saved in this browser. Keep a backup in case site data is
                   cleared.
