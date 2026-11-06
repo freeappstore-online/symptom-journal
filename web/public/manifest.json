@@ -1,6 +1,6 @@
 {
-  "name": "SymptomMap",
-  "short_name": "SymptomMap",
+  "name": "Symptom Journal",
+  "short_name": "Symptom Journal",
   "description": "A personal symptom diary.",
   "start_url": "/",
   "display": "standalone",

@@ -69,7 +69,7 @@ const point = (x: unknown) =>
 export function validateDiary(value: unknown): Diary {
   const invalid = () => {
     throw new Error(
-      "This file is not a supported SymptomMap backup. Your diary was not changed.",
+      "This file is not a supported Symptom Journal backup. Your diary was not changed.",
     );
   };
   if (

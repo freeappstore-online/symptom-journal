@@ -115,13 +115,13 @@ test('backup rejects coerced profile identifiers and enums', () => {
     d => { d.profiles[0].sex = ['female']; },
     d => { d.entries[0].kind = ['symptom']; },
     d => { d.entries[0].location.view = ['front']; },
-  ]) { const d = diary(); mutate(d); assert.throws(() => validateDiary(d), /supported SymptomMap backup/); }
+  ]) { const d = diary(); mutate(d); assert.throws(() => validateDiary(d), /supported Symptom Journal backup/); }
 });
 test('malformed location metadata fails with the supported backup error', () => {
   for (const surface3d of [null, {regionId:123}, {regionId:'constructor'}]) {
     const d=diary(); d.entries[0].location.detail='Nose'; d.entries[0].location.surface3d=surface3d;
-    assert.throws(()=>validateDiary(d), /supported SymptomMap backup/);
+    assert.throws(()=>validateDiary(d), /supported Symptom Journal backup/);
   }
   const d=diary(); d.entries[0].location.region='constructor'; d.entries[0].location.detail='Nose';
-  assert.throws(()=>validateDiary(d), /supported SymptomMap backup/);
+  assert.throws(()=>validateDiary(d), /supported Symptom Journal backup/);
 });

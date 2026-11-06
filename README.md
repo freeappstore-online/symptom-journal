@@ -1,4 +1,4 @@
-# SymptomMap
+# Symptom Journal
 
 A mobile-first personal symptom diary for FreeAppStore. A working local-first development build.
 

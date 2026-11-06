@@ -53,12 +53,12 @@ import {
 } from "./store";
 
 const NAV: NavItem[] = [
-  { label: "Diary", href: "/", title: "Diary — SymptomMap" },
-  { label: "History", href: "/history", title: "History — SymptomMap" },
+  { label: "Diary", href: "/", title: "Diary — Symptom Journal" },
+  { label: "History", href: "/history", title: "History — Symptom Journal" },
   {
     label: "Backup & privacy",
     href: "/settings",
-    title: "Backup — SymptomMap",
+    title: "Backup — Symptom Journal",
   },
 ];
 const input = inputClass;
@@ -102,7 +102,7 @@ function download(diary: Diary) {
   );
   const a = document.createElement("a");
   a.href = url;
-  a.download = `symptom-map-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `symptom-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -237,11 +237,11 @@ export default function App() {
                         : path === "/history"
                           ? "History"
                           : !profile
-                            ? "Who is using SymptomMap?"
+                            ? "Who is using Symptom Journal?"
                             : "Your diary";
   return (
     <div className="pb-24 sm:pb-0 [&>div>header>div:first-child>a]:hidden [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
-      <Shell app={fas} appName="SymptomMap" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
+      <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
           {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-4 py-2 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"note":i===1?"calendar":"shield"}/><span>{i===2?"Settings":item.label}</span></a>)}
         </nav>}>
         <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10 [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong">
@@ -661,7 +661,7 @@ export default function App() {
                 </div>
                 <article className="space-y-5 rounded-[1.75rem] bg-panel p-5 print:border-0 print:p-0">
                   <h2 className="text-2xl font-bold">
-                    SymptomMap · symptom diary
+                    Symptom Journal · symptom diary
                   </h2>
                   <p>{profile.name} · Self-reported observations</p>
                   <p className="text-sm">
@@ -751,7 +751,7 @@ export default function App() {
                       type="file"
                       accept="application/json,.json"
                       className="hidden"
-                      aria-label="Choose a SymptomMap backup"
+                      aria-label="Choose a Symptom Journal backup"
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
                         e.target.value = "";
