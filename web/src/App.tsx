@@ -129,7 +129,6 @@ export default function App() {
   const [step, setStep] = useState<
     | "home"
     | "new"
-    | "confirm"
     | "editProfile"
     | "map"
     | "record"
@@ -210,7 +209,7 @@ export default function App() {
   };
   const choose = (p: Profile) => {
     setActive(p.id);
-    setStep("confirm");
+    navigate("/");
     setNotice("");
   };
   const openEntry = (e: Entry) => {
@@ -222,8 +221,8 @@ export default function App() {
       ? "Create a profile"
       : step === "editProfile"
         ? "Edit profile"
-        : step === "confirm"
-          ? "Still correct?"
+        : path === "/profile"
+          ? "Profile details"
           : step === "map"
             ? "Where do you feel it?"
             : step === "record"
@@ -315,7 +314,7 @@ export default function App() {
               <ProfileForm
                 key={step}
                 profile={step === "editProfile" ? profile : undefined}
-                onCancel={() => setStep(profile ? "confirm" : "home")}
+                onCancel={() => profile ? navigate("/profile") : setStep("home")}
                 onSave={(values) => {
                   const p: Profile = {
                     ...values,
@@ -335,12 +334,12 @@ export default function App() {
                   };
                   if (commit(next)) {
                     setActive(p.id);
-                    setStep("confirm");
+                    navigate(step === "editProfile" ? "/profile" : "/");
                   }
                 }}
               />
             )}
-            {step === "confirm" && profile && (
+            {step === "home" && path === "/profile" && (profile ? (
               <Panel>
                 <div className="flex items-center gap-4">
                   <ProfileInitial
@@ -364,8 +363,8 @@ export default function App() {
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-3">
-                  <button className={primary} onClick={() => setStep("home")}>
-                    Continue to diary
+                  <button className={primary} onClick={() => navigate("/")}>
+                    Open diary
                   </button>
                   <button
                     className={secondary}
@@ -375,7 +374,7 @@ export default function App() {
                   </button>
                 </div>
               </Panel>
-            )}
+            ) : <ChooseFirst onChoose={() => navigate("/")}/>)}
             {step === "home" && path === "/" && !profile && (
               <>
                 <div className="divide-y divide-line overflow-hidden rounded-2xl bg-panel">
@@ -720,6 +719,7 @@ export default function App() {
             )}
             {step === "home" && path === "/settings" && (
               <>
+                <Panel><h2 className="text-lg font-bold">Profile</h2><button className={`${secondary} mt-3`} onClick={()=>navigate("/profile")}>View or edit profile details →</button></Panel>
                 <Panel>
                   <h2 className="text-lg font-bold">Keep a copy</h2>
                   <p className="mt-2 text-sm text-muted">
@@ -814,7 +814,7 @@ export default function App() {
               </>
             )}
             {step === "home" &&
-              !["/", "/history", "/settings"].includes(path) && (
+              !["/", "/history", "/settings", "/profile"].includes(path) && (
                 <EmptyState
                   title="Page not found"
                   message="Open Diary to continue."
