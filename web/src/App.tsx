@@ -1,3 +1,4 @@
+import { HelpPage } from "./HelpPage";
 import { HomeOverview } from "./HomeOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
 import { BodyHistory } from "./BodyHistory";
@@ -61,6 +62,7 @@ const NAV: NavItem[] = [
     href: "/settings",
     title: "Backup — Symptom Journal",
   },
+  { label: "Help", href: "/help", title: "Help — Symptom Journal" },
 ];
 const input = inputClass;
 const primary = buttonPrimary;
@@ -222,6 +224,8 @@ export default function App() {
       ? "Create a profile"
       : step === "editProfile"
         ? "Edit profile"
+        : path === "/help"
+          ? "How to use Symptom Journal"
         : path === "/profile"
           ? "Profile details"
           : step === "map"
@@ -242,7 +246,7 @@ export default function App() {
   return (
     <div className="pb-24 sm:pb-0 [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
-          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-4 py-2 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"history":"settings"}/><span>{i===2?"Settings":item.label}</span></a>)}
+          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"history":i===2?"settings":"help"}/><span>{i===2?"Settings":item.label}</span></a>)}
         </nav>}>
         <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10 [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong">
           <div className="print:hidden">
@@ -702,6 +706,7 @@ export default function App() {
                 </button>
               </>
             )}
+            {step === "home" && path === "/help" && <HelpPage onBackup={()=>navigate("/settings")}/>}
             {step === "home" && path === "/settings" && (
               <>
                 <Panel><h2 className="text-lg font-bold">Profile</h2><button className={`${secondary} mt-3`} onClick={()=>navigate("/profile")}>View or edit profile details →</button></Panel>
@@ -799,7 +804,7 @@ export default function App() {
               </>
             )}
             {step === "home" &&
-              !["/", "/history", "/settings", "/profile"].includes(path) && (
+              !["/", "/history", "/settings", "/profile", "/help"].includes(path) && (
                 <EmptyState
                   title="Page not found"
                   message="Open Diary to continue."
