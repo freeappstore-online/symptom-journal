@@ -6,7 +6,7 @@ export const inputClass =
 export const buttonPrimary =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-paper transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40";
 export const buttonSecondary =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-sky-soft px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-accent-soft aria-pressed:bg-accent aria-pressed:text-paper disabled:opacity-40";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-bold text-paper transition-colors hover:bg-accent-hover aria-pressed:ring-2 aria-pressed:ring-accent disabled:opacity-40";
 export type IconName =
   | "home"
   | "history"

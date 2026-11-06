@@ -424,15 +424,15 @@ function CanvasSurface(props: Props) {
           className={`${props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
-        <button type="button" aria-label="Open body map gesture guide" title="Gesture guide" className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-panel text-lg font-bold text-accent shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
+        <button type="button" aria-label="Open body map gesture guide" title="Gesture guide" className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
         {status === "ready" && <div role="group" aria-label="Move and zoom body map" className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
-          <div className="flex flex-col overflow-hidden rounded-2xl bg-panel shadow-sm">
-            <button type="button" title="Move view up" aria-label="Move view up" className="flex size-11 items-center justify-center text-xl font-bold text-accent hover:bg-accent-soft" onClick={()=>api.current?.pan(1)}>↑</button>
-            <button type="button" title="Move view down" aria-label="Move view down" className="flex size-11 items-center justify-center text-xl font-bold text-accent hover:bg-accent-soft" onClick={()=>api.current?.pan(-1)}>↓</button>
+          <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
+            <button type="button" title="Move view up" aria-label="Move view up" className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
+            <button type="button" title="Move view down" aria-label="Move view down" className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(-1)}>↓</button>
           </div>
-          <div className="flex flex-col overflow-hidden rounded-2xl bg-panel shadow-sm">
-            <button type="button" title="Zoom in" aria-label="Zoom in" className="flex size-11 items-center justify-center text-2xl font-semibold text-accent hover:bg-accent-soft" onClick={()=>api.current?.zoom(0.8)}>+</button>
-            <button type="button" title="Zoom out" aria-label="Zoom out" className="flex size-11 items-center justify-center text-2xl font-semibold text-accent hover:bg-accent-soft" onClick={()=>api.current?.zoom(1.25)}>−</button>
+          <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
+            <button type="button" title="Zoom in" aria-label="Zoom in" className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(0.8)}>+</button>
+            <button type="button" title="Zoom out" aria-label="Zoom out" className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(1.25)}>−</button>
           </div>
         </div>}
 
