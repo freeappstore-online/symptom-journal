@@ -1,3 +1,4 @@
+import { ChartNoAxesColumnIncreasing, CircleHelp, House, History, Settings, Image, Camera, Plus, MapPin, Cloud, ArrowRight, ChevronRight, ShieldCheck, Check, CalendarDays, NotebookPen, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Entry } from "./store";
 
@@ -32,54 +33,9 @@ export function Icon({
   name: IconName;
   className?: string;
 }) {
-  return (
-    <svg
-      className={`shrink-0 ${className}`}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {name === "chart" ? <><path d="M4 3v17h17M8 15v-4M13 15V7M18 15v-7"/></> : name === "help" ? <><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1-1.5 2.5M12 17h.01"/></> : name === "home" ? <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></> : name === "history" ? <><path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7"/><path d="M12 7v5l3 2"/></> : name === "settings" ? <><path d="m9 3-.5 2.5-2 1.2L4 6l-2 3.5 2 1.8v2.4l-2 1.8L4 19l2.5-.7 2 1.2L9 22h6l.5-2.5 2-1.2 2.5.7 2-3.5-2-1.8v-2.4l2-1.8L20 6l-2.5.7-2-1.2L15 3Z"/><circle cx="12" cy="12.5" r="3"/></> : name === "photo" ? (<><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/></>) : name === "camera" ? (<><path d="m8 5 1-2h6l1 2h4a2 2 0 0 1 2 2v12H2V7a2 2 0 0 1 2-2h4Z"/><circle cx="12" cy="12" r="4"/></>) : name === "plus" ? (
-        <path d="M12 5v14M5 12h14" />
-      ) : name === "pin" ? (
-        <>
-          <path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z" />
-          <circle cx="12" cy="10" r="2.5" />
-        </>
-      ) : name === "cloud" ? (
-        <path d="M7 18a5 5 0 1 1 1-9.9A6 6 0 0 1 19.8 10 4 4 0 0 1 19 18Z" />
-      ) : name === "arrow" ? (
-        <path d="M4 12h16m-6-6 6 6-6 6" />
-      ) : name === "chevron" ? (
-        <path d="m9 5 7 7-7 7" />
-      ) : name === "shield" ? (
-        <>
-          <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" />
-          <path d="m8 12 3 3 5-6" />
-        </>
-      ) : name === "check" ? (
-        <path d="m5 12 4 4L19 6" />
-      ) : name === "calendar" ? (
-        <>
-          <rect x="3" y="5" width="18" height="16" rx="3" />
-          <path d="M7 3v4m10-4v4M3 10h18m-12 4h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" />
-        </>
-      ) : name === "note" ? (
-        <>
-          <path d="M8 4h10a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2Zm0 0v16m3-10h6m-6 4h6" />
-        </>
-      ) : (
-        <>
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
-        </>
-      )}
-    </svg>
-  );
+  const icons = {chart:ChartNoAxesColumnIncreasing,help:CircleHelp,home:House,history:History,settings:Settings,photo:Image,camera:Camera,plus:Plus,pin:MapPin,cloud:Cloud,arrow:ArrowRight,chevron:ChevronRight,shield:ShieldCheck,check:Check,calendar:CalendarDays,note:NotebookPen,user:UserRound};
+  const Symbol=icons[name];
+  return <Symbol className={`shrink-0 ${className}`} strokeWidth={1.8} aria-hidden="true"/>;
 }
 // Local diary initials represent device profiles, not platform account avatars.
 export function ProfileInitial({
