@@ -1,3 +1,4 @@
+import { HomeOverview } from "./HomeOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
 import { BodyHistory } from "./BodyHistory";
 import { LibrarySelect } from "./LibrarySelect";
@@ -53,7 +54,7 @@ import {
 } from "./store";
 
 const NAV: NavItem[] = [
-  { label: "Diary", href: "/", title: "Diary — Symptom Journal" },
+  { label: "Home", href: "/", title: "Home — Symptom Journal" },
   { label: "History", href: "/history", title: "History — Symptom Journal" },
   {
     label: "Backup & privacy",
@@ -237,7 +238,7 @@ export default function App() {
                           ? "History"
                           : !profile
                             ? "Who is using Symptom Journal?"
-                            : "Your diary";
+                            : `Hello, ${profile.name}`;
   return (
     <div className="pb-24 sm:pb-0 [&>div>header>div:first-child>a]:hidden [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
@@ -420,6 +421,8 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
+                <HomeOverview key={profile.id} entries={entries} onHistory={()=>navigate("/history")} onOpen={openEntry}/>
+                <h2 className="text-lg">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">Recent entries</h2>
