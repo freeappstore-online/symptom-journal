@@ -243,12 +243,17 @@ export default function App() {
                           : !profile
                             ? "Who is using Symptom Journal?"
                             : `Hello, ${profile.name}`;
+  const isRecordingMenu = step === "home" && path === "/" && !!profile;
+  const switchProfile = () => {
+    setActive(null);
+    navigate("/");
+  };
   return (
-    <div className="pb-24 sm:pb-0 [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
+    <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[aria-label=Main]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
           {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"help"}/><span>{i===2?"Settings":item.label}</span></a>)}
         </nav>}>
-        <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10 [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong">
+        <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
             {["map", "record"].includes(step) && (
               <>
@@ -273,13 +278,18 @@ export default function App() {
             )}
             <PageHeader
               title={heading}
+              actions={isRecordingMenu && (
+                <button type="button" className="min-h-11 shrink-0 text-xs text-accent underline underline-offset-4" onClick={switchProfile}>
+                  Switch profile
+                </button>
+              )}
               description={
                 !profile && step === "home" && path === "/"
                   ? "Choose a profile on this device."
                   : undefined
               }
             />
-            {profile && (
+            {profile && !isRecordingMenu && (
               <div className="mb-4 mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-2 font-semibold">
                   <Icon name="user" className="size-3.5" />
@@ -287,11 +297,7 @@ export default function App() {
                 </span>
                 {!(["map","record"].includes(step)) && <button
                   className="min-h-11 text-accent underline underline-offset-4"
-                  onClick={() => {
-                    setActive(null);
-                    setStep("home");
-                    navigate("/");
-                  }}
+                  onClick={switchProfile}
                 >
                   Switch profile
                 </button>}
@@ -314,7 +320,7 @@ export default function App() {
               </p>
             )}
           </div>
-          <div className="mt-5 space-y-5">
+          <div className={isRecordingMenu ? "mt-2 space-y-3" : "mt-5 space-y-5"}>
             {(step === "new" || step === "editProfile") && (
               <ProfileForm
                 key={step}
@@ -425,7 +431,7 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
-                <h2 className="text-lg">What would you like to record?</h2>
+                <h2 className="text-base sm:text-lg">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
               </>
             )}
