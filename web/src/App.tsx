@@ -1,5 +1,5 @@
 import { HelpPage } from "./HelpPage";
-import { HomeOverview } from "./HomeOverview";
+import { SummaryOverview } from "./SummaryOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
 import { BodyHistory } from "./BodyHistory";
 import { LibrarySelect } from "./LibrarySelect";
@@ -425,14 +425,8 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
-                <HomeOverview key={profile.id} entries={entries} onHistory={()=>navigate("/history")} onOpen={openEntry}/>
                 <h2 className="text-lg">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
-                <button className={`${secondary} w-full`} onClick={() => navigate("/history")}>View summary →</button>
-                <p className="text-sm text-muted">
-                  Saved in this browser. Keep a backup in case site data is
-                  cleared.
-                </p>
               </>
             )}
             {step === "map" && profile && (
@@ -600,6 +594,7 @@ export default function App() {
               path === "/history" &&
               (profile ? (
                 <>
+                  <SummaryOverview key={profile.id} entries={entries} onOpen={openEntry} />
                   <label className="block space-y-2 text-sm font-bold">Body-part history
                     <LibrarySelect label="Filter history by body part" value={historyPart} onChange={setHistoryPart} options={[{id:"",label:"All entries"},...[...new Set(entries.flatMap(e=>e.location?[e.location.region,specificLocationName(e.location)]:[]))].sort().map(label=>({id:label,label}))]}/>
 
