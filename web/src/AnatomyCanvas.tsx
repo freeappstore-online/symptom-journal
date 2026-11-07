@@ -1,3 +1,4 @@
+import { addAnatomyEyes } from "./anatomy-eyes";
 import { GestureGuide } from "./GestureGuide";
 import { addAnatomyClothing, prepareFabricNormals } from "./anatomy-clothing";
 import { BodyOrientation } from "./BodyOrientation";
@@ -111,6 +112,7 @@ function CanvasSurface(props: Props) {
     const overlay = new THREE.Group();
     scene.add(overlay);
     const targets: THREE.Mesh[] = [];
+    let eyeTargets: THREE.Mesh[] = [];
     const draw = () => {
       if (!disposed) {
         renderer.render(scene, camera);
@@ -328,7 +330,7 @@ function CanvasSurface(props: Props) {
         ),
         camera,
       );
-      const hit = ray.intersectObjects(targets, false)[0];
+      const hit = ray.intersectObjects([...targets, ...eyeTargets], false)[0];
       if (!hit?.face) return;
       const normal = hit.face.normal
         .clone()
@@ -388,6 +390,7 @@ function CanvasSurface(props: Props) {
             targets.push(c);
           }
         });
+        if (!props.reference) eyeTargets = addAnatomyEyes(object, modelId === MALE_MODEL_ID);
         content.add(object);
         cameraReset();
         paint();

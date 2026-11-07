@@ -35,6 +35,27 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
 
       `}
       diffuseColor.rgb = mix(diffuseColor.rgb, mix(garmentColor, garmentTrim, edging * 0.25), cloth);
+      ${male ? `
+        // Follow the existing nipple detail on the uncovered chest.
+        float nippleDistance = length(vec2((ax - 0.059) / 0.0048, (gy - 0.732) / 0.004));
+        float nipple = (1.0 - smoothstep(0.35, 1.0, nippleDistance)) * smoothstep(0.055, 0.07, garmentPosition.z);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.70, 0.74, 0.78), nipple);
+      ` : ""}
+      // Sweep the hairline across the forehead, then taper it around the ears and nape.
+      if (gy > 0.89) {
+        float angle = atan(garmentPosition.x, garmentPosition.z - 0.025);
+        float facing = smoothstep(-0.6, 0.85, cos(angle));
+        float sweep = (0.0035 * sin(angle * 2.0 + 0.6) + 0.002 * sin(angle * 4.0)) * facing;
+        float hairline = mix(${male ? "0.927" : "0.907"}, ${male ? "0.969" : "0.964"}, facing) + sweep;
+        float edge = max(fwidth(gy - hairline), 0.0007);
+        float hair = smoothstep(-edge, edge, gy - hairline);
+        float flow = angle + 6.0 * (gy - 0.95);
+        float strands = 0.5 + 0.25 * sin(flow * 31.0) + 0.25 * sin(flow * 19.0 + 1.2);
+        float crown = smoothstep(0.976, 0.997, gy);
+        vec3 hairColor = mix(vec3(0.045, 0.063, 0.077), vec3(0.092, 0.118, 0.137), mix(strands, 0.55, crown));
+        diffuseColor.rgb = mix(diffuseColor.rgb, hairColor, hair);
+      }
+
     `);
     if (!male) shader.fragmentShader = shader.fragmentShader.replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
       // Smooth lighting across the fabric-covered chest rather than reproducing
@@ -42,7 +63,7 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
       normal = normalize(mix(normal, normalize(garmentSoftNormal), cloth));
     `);
   };
-  material.customProgramCacheKey = () => male ? "modest-shorts-v1" : "modest-bodysuit-v5";
+  material.customProgramCacheKey = () => male ? "male-anatomy-details-v1" : "female-anatomy-details-v1";
 }
 
 // A smooth fabric surface fitted to the surrounding breast envelope, excluding
