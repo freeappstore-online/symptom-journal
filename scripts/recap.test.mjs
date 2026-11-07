@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { observations, recentWindow, trendBuckets, recordedTogether, durationEnd } from '../web/src/recap.ts';
+import { observations, recentWindow, trendBuckets, recordedTogether, durationEnd, homeSnapshot } from '../web/src/recap.ts';
 const base = { id:'a', profileId:'p', symptom:'Pain', severity:4, occurredAt:'2026-11-04T10:00:00Z', duration:'', notes:'', location:null };
 test('recap separates locations and mood, preserving individual scores', () => {
  const rows = observations([base, {...base,id:'b',location:{region:'Left shoulder',view:'front'},feelings:[{name:'Anxious',kind:'mood',intensity:7,notes:''}]}]);
@@ -35,4 +35,21 @@ test('duration bands use explicit units; ambiguous and ongoing entries stay poin
  assert.equal(durationEnd(start,'1.5 hours'),start+90*60000);
  for(const text of ['', 'ongoing','45','yesterday','-1 hours','999 days'])assert.equal(durationEnd(start,text),null);
  const row=observations([{...base,duration:'45 minutes'}])[0];assert.equal(row.endTime,row.time+45*60000);
+});
+
+
+test('home figures count individual observations and average only in-period temperatures', () => {
+ const now = new Date(2026, 10, 7, 12);
+ const today = new Date(2026, 10, 7, 8).toISOString();
+ const temperature = celsius => ({...base, occurredAt:today, temperature:{celsius,method:'Ear'}});
+ const entries = [
+   {...base, occurredAt:today, location:{region:'Chest',view:'front'}, symptoms:[{name:'Pain',severity:4},{name:'Tightness',severity:2}]},
+   {...base, occurredAt:today, category:'mental', symptom:'Calm'},
+   {...base, occurredAt:today, kind:'general', feelings:[{name:'Fatigue',kind:'physical',intensity:2,notes:''}]},
+   temperature(37), temperature(38),
+   {...temperature(40), occurredAt:new Date(2026,10,7,14).toISOString()},
+   {...base, occurredAt:new Date(2026,9,31,23,59).toISOString()},
+ ];
+ assert.deepEqual(homeSnapshot(entries, now), {body:2,general:1,mood:1,averageTemperature:37.5});
+ assert.equal(homeSnapshot([], now).averageTemperature, null);
 });

@@ -16,17 +16,17 @@ export function RecordTiles({ onChoose }: { onChoose: (category: LogCategory) =>
           type="button"
           key={kind}
           onClick={() => onChoose(kind)}
-          className={`group flex min-w-0 flex-col items-start rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-accent focus-visible:ring-2 focus-visible:ring-accent sm:p-4 [@media(max-height:580px)]:p-2.5 ${tone}`}
+          className={`group flex min-w-0 flex-col items-start rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-accent focus-visible:ring-2 focus-visible:ring-accent sm:p-4 [@media(max-height:580px)]:min-h-14 [@media(max-height:580px)]:flex-row [@media(max-height:580px)]:items-center [@media(max-height:580px)]:gap-2 [@media(max-height:580px)]:p-2 ${tone}`}
         >
-          <span className="mb-2 flex w-full items-center justify-between gap-2">
-            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-panel">
+          <span className="mb-2 flex w-full items-center justify-between gap-2 [@media(max-height:580px)]:mb-0 [@media(max-height:580px)]:w-auto">
+            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-panel [@media(max-height:580px)]:size-7">
               <Symbol className="size-5" strokeWidth={1.8} aria-hidden="true" />
             </span>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-paper group-hover:bg-accent-hover">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-paper group-hover:bg-accent-hover [@media(max-height:580px)]:hidden">
               <ArrowRight className="size-4" aria-hidden="true" />
             </span>
           </span>
-          <span className="text-sm font-extrabold leading-snug text-ink-strong sm:text-base">{title}</span>
+          <span className="text-sm font-extrabold leading-snug text-ink-strong sm:text-base [@media(max-height:580px)]:text-xs">{title}</span>
           <span className="mt-1 text-xs leading-snug text-muted [@media(max-height:580px)]:sr-only">{hint}</span>
         </button>
       ))}

@@ -46,6 +46,39 @@ export function recentWindow(days: number, now = new Date()) {
   return { start: start.getTime(), end: end.getTime() };
 }
 
+export function homeSnapshot(entries: Entry[], now = new Date()) {
+  const { start } = recentWindow(7, now);
+  let body = 0;
+  let general = 0;
+  let mood = 0;
+  let temperatureSum = 0;
+  let temperatureCount = 0;
+
+  for (const entry of entries) {
+    const time = Date.parse(entry.occurredAt);
+    if (!Number.isFinite(time) || time < start || time > now.getTime()) continue;
+    if (entry.temperature) {
+      temperatureSum += entry.temperature.celsius;
+      temperatureCount++;
+    }
+    const symptomCount = entrySymptoms(entry).length;
+    if (entry.category === "mental") mood += symptomCount;
+    else if (entry.category === "body" || entry.location) body += symptomCount;
+    else general += symptomCount;
+    for (const feeling of entry.feelings ?? []) {
+      if (feeling.kind === "mood") mood++;
+      else general++;
+    }
+  }
+
+  return {
+    body,
+    general,
+    mood,
+    averageTemperature: temperatureCount ? temperatureSum / temperatureCount : null,
+  };
+}
+
 export type TrendBucket = { start: number; end: number; count: number; mean: number | null; latestId: string | null };
 export function trendBuckets(rows: Observation[], start: number, end: number, step: number): TrendBucket[] {
   const result: TrendBucket[] = [];

@@ -3,6 +3,7 @@ import { SummaryOverview } from "./SummaryOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
 import { BodyHistory } from "./BodyHistory";
 import { LibrarySelect } from "./LibrarySelect";
+import { HomeSnapshot } from "./HomeSnapshot";
 import { RecordTiles } from "./RecordTiles";
 import { entrySymptoms, entryTitle, libraryScope, quickOptions } from "./logging";
 import type { LogCategory, SymptomRating } from "./store";
@@ -431,7 +432,8 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
-                <h2 className="text-base sm:text-lg">What would you like to record?</h2>
+                <HomeSnapshot entries={entries} />
+                <h2 className="text-base sm:text-lg [@media(max-height:580px)]:sr-only">What would you like to record?</h2>
                 <RecordTiles onChoose={start}/>
               </>
             )}
