@@ -2,7 +2,7 @@ import { ArrowRight, Brain, ClipboardList, PersonStanding, Thermometer } from "l
 import type { LogCategory } from "./store";
 
 const tiles = [
-  { kind: "body", title: "Body symptoms", hint: "Mark where you feel it", icon: PersonStanding, tone: "bg-accent-soft text-accent" },
+  { kind: "body", title: "Body symptoms", hint: "Mark where you feel it", icon: PersonStanding, tone: "bg-mint-soft text-mint" },
   { kind: "physical", title: "General symptoms", hint: "Fatigue, nausea and more", icon: ClipboardList, tone: "bg-sky-soft text-sky" },
   { kind: "mental", title: "Mood & emotions", hint: "Record how you feel", icon: Brain, tone: "bg-violet-soft text-violet" },
   { kind: "temperature", title: "Temperature", hint: "Log a thermometer reading", icon: Thermometer, tone: "bg-pain-soft text-pain" },

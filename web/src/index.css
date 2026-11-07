@@ -6,6 +6,7 @@
 @theme inline {
   --color-camera: var(--camera);
   --color-camera-ink: var(--camera-ink);
+  --color-overview-blue: var(--overview-blue);
   --color-hero-start: var(--hero-start);
   --color-on-hero: var(--on-hero);
   --color-hero-end: var(--hero-end);
@@ -129,6 +130,7 @@
     --radius: 1.25rem;
     --radius-sm: 0.75rem;
     --shadow: 0 4px 16px rgba(9, 40, 63, 0.10);
+    --overview-blue: #154d91;
     --hero-start: #064953;
     --hero-end: #0b6370;
     --pain: #b54438;
@@ -168,6 +170,7 @@
     --success-soft: #25463b;
     --warning-soft: #493f2b;
     --danger-soft: #4e3031;
+    --overview-blue: #173c68;
     --hero-start: #064953;
     --hero-end: #0b6370;
     --pain: #ffac98;
