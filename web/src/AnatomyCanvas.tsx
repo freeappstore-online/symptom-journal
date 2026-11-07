@@ -176,6 +176,8 @@ function CanvasSurface(props: Props) {
             color.setHSL((1-value)*0.65,0.9,0.5);
             colors.set([color.r,color.g,color.b],i*3);strength[i]=Math.min(0.85,weight*0.8);
           }
+          geometry.setAttribute("position", positions);
+          geometry.setAttribute("normal", normals);
           geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
           geometry.setAttribute("heatAlpha",new THREE.BufferAttribute(strength,1));
           const material=new THREE.ShaderMaterial({vertexShader:`attribute vec3 color; attribute float heatAlpha; varying vec3 heatColor; varying float heatOpacity;
@@ -207,9 +209,11 @@ function CanvasSurface(props: Props) {
                 value: new THREE.Color(css.getPropertyValue("--sky").trim()),
               },
             },
-            vertexShader: `varying vec3 surfacePosition; varying vec3 surfaceNormal;
+            vertexShader: `${mesh.geometry.hasAttribute("fabricPosition") ? "attribute vec3 fabricPosition; attribute vec3 fabricNormal;" : ""}
+            varying vec3 surfacePosition; varying vec3 surfaceNormal;
             void main() { surfacePosition = position; surfaceNormal = normal;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * 0.0006, 1.0); }`,
+              vec3 renderPosition = ${mesh.geometry.hasAttribute("fabricPosition") ? "fabricPosition + fabricNormal * 0.0006" : "position + normal * 0.0006"};
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(renderPosition, 1.0); }`,
             fragmentShader: `uniform vec3 origin; uniform vec3 direction; uniform float radius; uniform vec3 tint;
             varying vec3 surfacePosition; varying vec3 surfaceNormal;
             void main() { float d = distance(surfacePosition, origin);

@@ -1,6 +1,6 @@
-import { BufferAttribute, type BufferGeometry } from "three";
+import { BufferAttribute, BufferGeometry } from "three";
 import type { MeshStandardMaterial, Color } from "three";
-// Surface material only: leaves source geometry, raycasts and saved anchors unchanged.
+// Render-only fabric adjustments leave source geometry and saved anchors intact.
 export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean, color: Color, trim: Color) {
   material.onBeforeCompile = shader => {
     shader.uniforms.garmentColor = {value:color};
@@ -19,7 +19,9 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
       ` : `
         float aa = max(0.00035, max(fwidth(gy), fwidth(ax)));
         float neckline = 0.765 + 0.043 * pow(clamp(ax / 0.079, 0.0, 1.0), 2.0);
-        float sideEdge = mix(0.106, 0.074, smoothstep(0.735, 0.795, gy));
+        // The shorts wrap the full hip before narrowing at the waist and armhole.
+        float sideEdge = mix(0.132, 0.106, smoothstep(0.50, 0.65, gy));
+        sideEdge = mix(sideEdge, 0.074, smoothstep(0.735, 0.795, gy));
         float torso = smoothstep(0.455 - aa, 0.455 + aa, gy)
           * (1.0 - smoothstep(neckline - aa, neckline + aa, gy))
           * (1.0 - smoothstep(sideEdge - aa, sideEdge + aa, ax));
@@ -40,14 +42,14 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
       normal = normalize(mix(normal, normalize(garmentSoftNormal), cloth));
     `);
   };
-  material.customProgramCacheKey = () => male ? "modest-shorts-v1" : "modest-bodysuit-v4";
+  material.customProgramCacheKey = () => male ? "modest-shorts-v1" : "modest-bodysuit-v5";
 }
 
 // A smooth fabric surface fitted to the surrounding breast envelope, excluding
 // nipple geometry. Only render attributes change; raycast and source vertices do not.
 export function prepareFabricNormals(geometry: BufferGeometry) {
- const p=geometry.getAttribute("position"),n=geometry.getAttribute("normal");
- const positions=Float32Array.from(p.array),normals=Float32Array.from(n.array);
+ const p=geometry.getAttribute("position");
+ const positions=Float32Array.from(p.array);
  for(const side of [-1,1]) {
    let center=-1;
    for(let i=0;i<p.count;i++)if(p.getX(i)*side>.03&&p.getX(i)*side<.085&&p.getY(i)>.715&&p.getY(i)<.77&&(center<0||p.getZ(i)>p.getZ(center)))center=i;
@@ -75,9 +77,24 @@ export function prepareFabricNormals(geometry: BufferGeometry) {
      const t=Math.max(0,Math.min(1,(d-.015)/.018)),weight=1-t*t*(3-2*t),x=dx/scale,y=dy/scale;
      const z=a[0]+a[1]*x+a[2]*y+a[3]*x*x+a[4]*x*y+a[5]*y*y;
      positions[i*3+2]=p.getZ(i)*(1-weight)+z*weight;
-     const nx=-(a[1]+2*a[3]*x+a[4]*y)/scale,ny=-(a[2]+a[4]*x+2*a[5]*y)/scale,len=Math.hypot(nx,ny,1);
-     normals[i*3]=n.getX(i)*(1-weight)+nx/len*weight;normals[i*3+1]=n.getY(i)*(1-weight)+ny/len*weight;normals[i*3+2]=n.getZ(i)*(1-weight)+1/len*weight;
+
    }
  }
- geometry.setAttribute("fabricPosition",new BufferAttribute(positions,3));geometry.setAttribute("fabricNormal",new BufferAttribute(normals,3));
+ // Soften the broader chest contour without changing shoulders, back or torso width.
+ for (let i = 0; i < p.count; i++) {
+   const x = (Math.abs(p.getX(i)) - 0.055) / 0.047;
+   const y = (p.getY(i) - 0.744) / 0.055;
+   const distance = Math.min(1, x * x + y * y);
+   const front = Math.max(0, Math.min(1, (p.getZ(i) - 0.038) / 0.050));
+   const weight = (1 - distance) ** 2 * front ** 2 * (3 - 2 * front);
+   positions[i * 3 + 1] -= 0.004 * weight;
+   positions[i * 3 + 2] -= 0.007 * weight;
+ }
+ const fabric = new BufferGeometry();
+ fabric.setIndex(geometry.index);
+ fabric.setAttribute("position", new BufferAttribute(positions, 3));
+ fabric.computeVertexNormals();
+ geometry.setAttribute("fabricPosition", fabric.getAttribute("position"));
+ geometry.setAttribute("fabricNormal", fabric.getAttribute("normal"));
+ fabric.dispose();
 }
