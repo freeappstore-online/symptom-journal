@@ -1,5 +1,5 @@
 import { t, displayLabel } from "./language";
-import { GestureGuide } from "./GestureGuide";
+import { GestureGuide, mapInput } from "./GestureGuide";
 import { LibrarySelect } from "./LibrarySelect";
 import { detailedSurfaceLocation } from "./surface-detail";
 import { SubregionField } from "./SubregionField";
@@ -146,6 +146,7 @@ export function AnatomyPicker({
       // Keep the session preference when browser storage is unavailable.
     }
   }
+  const [input, setInput] = useState(() => mapInput());
   const [markMode,setMarkMode] = useState<"region"|"area"|"point">("region");
   const [guide,setGuide] = useState<"idle"|"ask-area"|"area"|"ask-point"|"point"|"done">(initialValue ? "done" : "idle");
   const promptButton = useRef<HTMLButtonElement>(null);
@@ -153,6 +154,8 @@ export function AnatomyPicker({
   const editing = guide === "area" || guide === "point";
   useEffect(()=>{if(asking) promptButton.current?.focus({preventScroll:true});},[guide,asking]);
   const bodyRegions = getBodyRegions(model);
+  const areaPrompt = input === "touch" ? "Tap the centre, then resize the shaded area." : "Click the centre, then resize the shaded area.";
+  const spotPrompt = input === "touch" ? "Tap the point that best matches where you feel it." : "Click the point that best matches where you feel it.";
   function chooseRegion(l:Location) {setSelected(l);setMarkMode("region");setGuide("ask-area");}
   function skipMark() {
     const target = guide === "ask-area" || guide === "area" ? "area" : "point";
@@ -164,12 +167,11 @@ export function AnatomyPicker({
     chooseRegion(detailedSurfaceLocation(a,model));
   }
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted">{t("Tap a body part, or choose its name.")}</p>
+    <div className="space-y-4" onPointerDownCapture={event => setInput(mapInput(event.pointerType))}>
+      <p className="text-sm text-muted">{t(input === "touch" ? "Tap a body part, or choose its name." : "Click a body part, or choose its name.")}</p>
       <Modal open={showHelp} onClose={dismissGuide} title={t("Explore the body map")} maxWidth={420}>
         <div className="space-y-4">
-          <GestureGuide/>
-          <p className="text-xs text-muted">{t("Scroll outside the map.")}</p>
+          <GestureGuide input={input} />
           <button type="button" className={`${buttonPrimary} w-full`} onClick={dismissGuide}>{t("Start mapping")}</button>
         </div>
       </Modal>
@@ -185,7 +187,7 @@ export function AnatomyPicker({
               {guide==="ask-area"?<ellipse cx="80" cy="34" rx="32" ry="20" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>:<><circle cx="80" cy="34" r="17" stroke="currentColor" strokeWidth="2"/><circle cx="80" cy="34" r="5" fill="currentColor"/></>}
             </svg>
             <h2 className="text-xl">{guide==="ask-area"?t("Does it cover a wider area?"):t("Is there an exact or most painful spot?")}</h2>
-            <p className="text-sm text-muted">{guide==="ask-area"?t("Tap the centre, then resize the shaded area."):t("Tap the point that best matches where you feel it.")}</p>
+            <p className="text-sm text-muted">{t(guide === "ask-area" ? areaPrompt : spotPrompt)}</p>
             <div className="flex items-center justify-between gap-3">
               <button type="button" className={buttonSecondary} onClick={skipMark}>{t(guide==="ask-area"?"Skip area":"Skip spot")}</button>
               <button ref={promptButton} type="button" className={buttonPrimary} onClick={()=>{const tool=guide==="ask-area"?"area":"point";setMarkMode(tool);setGuide(tool);}}>{t(guide==="ask-area"?"Mark area":"Mark spot")}</button>
@@ -194,7 +196,7 @@ export function AnatomyPicker({
         </div>}
       </div>
       {editing && selected && <section aria-label={t("Marking controls")} className="space-y-3 rounded-3xl bg-panel p-4">
-        <p role="status" className="text-sm font-semibold">{guide==="area"?t("Tap the centre of the wider area."):t("Tap the exact or most painful spot on the body.")}</p>
+        <p role="status" className="text-sm font-semibold">{t(guide === "area" ? areaPrompt : spotPrompt)}</p>
         {guide==="area" && selected.surface3d?.area && <label className="block text-sm">{t("Area size")}<input aria-label={t("Pain area size")} type="range" min="8" max="80" className="block min-h-11 w-full accent-accent" value={Math.round(selected.surface3d.radius*1000)} onChange={e=>setSelected({...selected,surface3d:{...selected.surface3d!,radius:Number(e.target.value)/1000}})}/></label>}
         <div className="flex items-center justify-between gap-3">
           <button type="button" className={buttonSecondary} onClick={skipMark}>{t(guide==="area"?"Skip area":"Skip spot")}</button>

@@ -1,6 +1,6 @@
 import { t } from "./language";
 import { addAnatomyEyes } from "./anatomy-eyes";
-import { GestureGuide } from "./GestureGuide";
+import { GestureGuide, mapInput, type MapInput } from "./GestureGuide";
 import { addAnatomyClothing, addFemaleHairKnot, prepareFabricNormals } from "./anatomy-clothing";
 import { BodyOrientation } from "./BodyOrientation";
 import { bodyOrientation, type BodyOrientation as Orientation } from "./orientation";
@@ -58,7 +58,7 @@ function CanvasSurface(props: Props) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
-  const [help,setHelp] = useState(false);
+  const [help, setHelp] = useState<MapInput | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [orientation, setOrientation] = useState<Orientation>("front");
   useEffect(() => {
@@ -96,8 +96,8 @@ function CanvasSurface(props: Props) {
     controls.enableDamping = false;
     controls.enablePan = true;
     controls.enableZoom = true;
-    controls.touches.ONE = THREE.TOUCH.PAN;
-    controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
     controls.enabled = !props.compact;
     renderer.domElement.style.touchAction = props.compact ? "auto" : "none";
     controls.rotateSpeed = 0.65;
@@ -315,26 +315,23 @@ function CanvasSurface(props: Props) {
     });
     const ray = new THREE.Raycaster();
     let start = { x: 0, y: 0 };
-    let pointers = 0;
-    let multiple = false;
+    const pointers = new Set<number>();
+    let dragged = false;
     const down = (e: PointerEvent) => {
-      pointers++;
-      if (pointers > 1) multiple = true;
-      else {
+      if (!pointers.size) {
         start = { x: e.clientX, y: e.clientY };
-        multiple = false;
+        dragged = e.button !== 0;
+      } else {
+        dragged = true;
       }
-      controls.enabled = true;
+      pointers.add(e.pointerId);
+    };
+    const moved = (e: PointerEvent) => Math.hypot(e.clientX - start.x, e.clientY - start.y) > 7;
+    const move = (e: PointerEvent) => {
+      if (pointers.has(e.pointerId) && moved(e)) dragged = true;
     };
     const up = (e: PointerEvent) => {
-      pointers = Math.max(0, pointers - 1);
-      if (
-        multiple ||
-        current.current.readOnly ||
-        props.reference ||
-        Math.hypot(e.clientX - start.x, e.clientY - start.y) > 7
-      )
-        return;
+      if (!pointers.delete(e.pointerId) || dragged || moved(e) || current.current.readOnly || props.reference) return;
       const b = renderer.domElement.getBoundingClientRect();
       ray.setFromCamera(
         new THREE.Vector2(
@@ -353,13 +350,15 @@ function CanvasSurface(props: Props) {
         normal: { x: normal.x, y: normal.y, z: normal.z },
       });
     };
-    const cancel = () => {
-      pointers = 0;
-      multiple = true;
+    const cancel = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      dragged = true;
     };
     renderer.domElement.addEventListener("pointerdown", down, true);
+    renderer.domElement.addEventListener("pointermove", move, true);
     renderer.domElement.addEventListener("pointerup", up);
     renderer.domElement.addEventListener("pointercancel", cancel);
+    renderer.domElement.addEventListener("lostpointercapture", cancel);
     controls.addEventListener("change", draw);
     const url = props.reference
       ? "/anatomy/right-knee-bones-v1.glb"
@@ -431,8 +430,10 @@ function CanvasSurface(props: Props) {
       });
       renderer.dispose();
       renderer.domElement.removeEventListener("pointerdown", down, true);
+      renderer.domElement.removeEventListener("pointermove", move, true);
       renderer.domElement.removeEventListener("pointerup", up);
       renderer.domElement.removeEventListener("pointercancel", cancel);
+      renderer.domElement.removeEventListener("lostpointercapture", cancel);
       renderer.domElement.remove();
     };
   }, [attempt, props.reference, props.compact, modelId]);
@@ -440,14 +441,19 @@ function CanvasSurface(props: Props) {
   useEffect(() => { api.current?.view("reset"); }, [props.focus]);
   return (
     <div className="space-y-3">
-      <Modal open={help} onClose={()=>setHelp(false)} title={t("Explore the body map")} maxWidth={420}><GestureGuide/><button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(false)}>{t("Got it")}</button></Modal>
+      <Modal open={help !== null} onClose={()=>setHelp(null)} title={t("Explore the body map")} maxWidth={420}>
+        {help && <GestureGuide input={help} canSelect={!props.readOnly && !props.reference && !!props.onPick} />}
+        <button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(null)}>{t("Got it")}</button></Modal>
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
           className={`${props.compact ? "h-32" : props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && !props.compact && <BodyOrientation view={orientation} />}
-        {!props.compact && <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>}
+        {!props.compact && <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={event => {
+          const pointer = event.nativeEvent instanceof PointerEvent ? event.nativeEvent.pointerType : undefined;
+          setHelp(mapInput(pointer));
+        }}>?</button>}
         {status === "ready" && !props.compact && <div role="group" aria-label={t("Move and zoom body map")} className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
             <button type="button" title={t("Move view up")} aria-label={t("Move view up")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
