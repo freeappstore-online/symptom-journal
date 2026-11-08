@@ -1,4 +1,5 @@
 import { t, displayLabel, formatLocale, language, matchesLabel, setLanguage } from "./language";
+import { ReportPage } from "./ReportPage";
 import { HelpPage } from "./HelpPage";
 import { SummaryOverview } from "./SummaryOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
@@ -11,7 +12,7 @@ import type { LogCategory, SymptomRating } from "./store";
 import { LocationObservation } from "./LocationObservation";
 import { specificLocationName } from "./subregions";
 import { PhotoEditor, EntryPhotos } from "./EntryPhotos";
-import { locationLabel, profileModel, profileIllustration } from "./anatomy";
+import { profileModel, profileIllustration } from "./anatomy";
 import {
   useEffect,
   useRef,
@@ -64,7 +65,7 @@ const NAV: NavItem[] = [
     href: "/settings",
     title: "Backup — Symptom Journal",
   },
-  { label: "Help", href: "/help", title: "Help — Symptom Journal" },
+  { label: "Report", href: "/report", title: "Report — Symptom Journal" },
 ];
 const input = inputClass;
 const primary = buttonPrimary;
@@ -139,7 +140,6 @@ export default function App() {
     | "map"
     | "record"
     | "detail"
-    | "report"
   >("home");
   const [category,setCategory]=useState<LogCategory>("body");
   const [historyPart,setHistoryPart]=useState("");
@@ -252,7 +252,7 @@ export default function App() {
                   ? category==="body"?"Review entry":category==="physical"?"General symptoms":category==="mental"?"Mental health":"Body temperature"
                   : step === "detail"
                     ? "Entry details"
-                    : step === "report"
+                    : path === "/report"
                       ? "Symptom report"
                       : path === "/settings"
                         ? "Backup & privacy"
@@ -269,7 +269,7 @@ export default function App() {
   return (
     <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[data-journal-nav]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
-          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"help"}/><span>{i===2?t("Settings"):item.label}</span></a>)}
+          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"report"}/><span>{i===2?t("Settings"):item.label}</span></a>)}
         </nav>}>
         <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
@@ -645,76 +645,13 @@ export default function App() {
                   </label>
                   <HistoryCalendar entries={historyEntries.filter(e=>matchesLabel(`${entryTitle(e)}${e.location?` · ${specificLocationName(e.location)}`:""}`,query))}>{day=><EntryList entries={day} onOpen={openEntry}/>}</HistoryCalendar>
 
-                  {entries.length > 0 && (
-                    <button
-                      className={secondary}
-                      onClick={() => setStep("report")}
-                    >
-                      {t("Preview printable report")}
-                    </button>
-                  )}
                 </>
               ) : (
                 <ChooseFirst onChoose={() => navigate("/")} />
               ))}
-            {step === "report" && profile && (
-              <>
-                <button className={`${primary} print:hidden`} onClick={() => window.print()}>
-                  {t("Print or save PDF")}
-                </button>
-                <article className="symptom-report mt-4 space-y-5 rounded-[1.75rem] bg-panel p-5 print:mt-0 print:p-0">
-                  <div className="break-inside-avoid space-y-1">
-                    <h2 className="text-2xl font-bold">{t("Symptom report")}</h2>
-                    <p className="break-words font-semibold">{profile.name}</p>
-                    <p className="text-sm text-muted">
-                      {historyEntries.length} {historyEntries.length === 1 ? t("entry") : t("entries")}
-                      {historyPart && ` · ${displayLabel(historyPart)}`}
-                    </p>
-                    {historyEntries.some(e=>e.location) && <p className="text-sm text-muted">{t("Left and right refer to the patient’s own body.")}</p>}
-                  </div>
-                  {historyEntries.map(e => {
-                    const symptoms = entrySymptoms(e);
-                    const heading = e.location ? locationLabel(e.location) : e.temperature ? "Temperature" : e.category === "mental" ? "Mood" : "General symptoms";
-                    return <section key={e.id} className="space-y-3 border-t border-line pt-4">
-                      <div className="break-inside-avoid space-y-2">
-                        <time className="block text-sm text-muted" dateTime={e.occurredAt}>{when(e.occurredAt)}</time>
-                        <h3 className="text-lg font-bold">{displayLabel(heading)}</h3>
-                        {!!symptoms.length && <ul className="divide-y divide-line text-sm" aria-label={t("Symptom severity")}>
-                          {symptoms.map((symptom,i) => <li key={i} className="flex justify-between gap-3 py-1.5">
-                            <span className="min-w-0 break-words">{displayLabel(symptom.name)}</span>
-                            <span className="shrink-0 tabular-nums" aria-label={t("Severity {score} out of 10", {score:symptom.severity})}>{symptom.severity}/10</span>
-                          </li>)}
-                        </ul>}
-                        {e.temperature && <p className="text-sm"><strong>{e.temperature.celsius.toFixed(1)} °C</strong>{e.temperature.method && ` · ${displayLabel(e.temperature.method)}`}</p>}
-                        {e.duration && <p className="text-sm">{t("Duration")} {e.duration}</p>}
-                      </div>
-                      {!!e.feelings?.length && <ul className="divide-y divide-line text-sm" aria-label={t("Other symptoms and mood")}>
-                        {e.feelings.map((feeling,i) => <li key={i} className="break-inside-avoid py-1.5">
-                          <div className="flex justify-between gap-3">
-                            <span className="min-w-0 break-words">{displayLabel(feeling.name)}{feeling.kind === "mood" && <span className="text-muted"> {t("· Mood")}</span>}</span>
-                            <span className="shrink-0 tabular-nums" aria-label={t("Intensity {score} out of 10", {score:feeling.intensity})}>{feeling.intensity}/10</span>
-                          </div>
-                          {feeling.notes && <p className="mt-1 whitespace-pre-wrap break-words">{feeling.notes}</p>}
-                        </li>)}
-                      </ul>}
-                      {e.notes && <p className="whitespace-pre-wrap break-words text-sm"><strong className="block">{t("Notes")}</strong>{e.notes}</p>}
-                      {e.location && (e.location.surface3d || (e.location.illustration && e.location.illustration !== "none")) && (
-                        <div className="max-w-sm break-inside-avoid">
-                          <LocationSketch value={e.location} readOnly showLabel={false}/>
-                        </div>
-                      )}
-                      <EntryPhotos photos={e.photos} />
-                    </section>;
-                  })}
-                </article>
-                <button
-                  className={`${secondary} print:hidden`}
-                  onClick={() => setStep("home")}
-                >
-                  {t("Back to summary")}
-                </button>
-              </>
-            )}
+            {step === "home" && path === "/report" && (profile ? (
+              <ReportPage key={profile.id} entries={entries} profileName={profile.name} />
+            ) : <ChooseFirst onChoose={() => navigate("/")} />)}
             {step === "home" && path === "/help" && <HelpPage onBackup={()=>navigate("/settings")}/>}
             {step === "home" && path === "/settings" && (
               <>
@@ -791,6 +728,9 @@ export default function App() {
                 </Panel>
                 <Panel>
                   <h2 className="text-lg font-bold">{t("About the diary")}</h2>
+                  <button type="button" className="mt-2 min-h-11 text-sm font-semibold text-accent underline underline-offset-4" onClick={() => navigate("/help")}>
+                    {t("How to use Symptom Journal")}
+                  </button>
                   <p className="mt-3 text-sm text-muted">
                     {t("Record what you feel. This app does not diagnose conditions, assess urgency or recommend treatment.")}
                   </p>
@@ -807,7 +747,7 @@ export default function App() {
               </>
             )}
             {step === "home" &&
-              !["/", "/history", "/settings", "/profile", "/help"].includes(path) && (
+              !["/", "/history", "/settings", "/profile", "/help", "/report"].includes(path) && (
                 <EmptyState
                   title={t("Page not found")}
                   message={t("Open Diary to continue.")}

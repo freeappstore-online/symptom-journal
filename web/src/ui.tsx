@@ -1,5 +1,5 @@
 import { formatLocale, t } from "./language";
-import { ChartNoAxesColumnIncreasing, CircleHelp, House, History, Settings, Image, Camera, Plus, MapPin, Cloud, ArrowRight, ChevronRight, ShieldCheck, Check, CalendarDays, NotebookPen, UserRound } from "lucide-react";
+import { ChartNoAxesColumnIncreasing, CircleHelp, FileDown, House, History, Settings, Image, Camera, Plus, MapPin, Cloud, ArrowRight, ChevronRight, ShieldCheck, Check, CalendarDays, NotebookPen, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Entry } from "./store";
 
@@ -12,6 +12,7 @@ export const buttonSecondary =
 export type IconName =
   | "chart"
   | "help"
+  | "report"
   | "home"
   | "history"
   | "settings"
@@ -34,7 +35,7 @@ export function Icon({
   name: IconName;
   className?: string;
 }) {
-  const icons = {chart:ChartNoAxesColumnIncreasing,help:CircleHelp,home:House,history:History,settings:Settings,photo:Image,camera:Camera,plus:Plus,pin:MapPin,cloud:Cloud,arrow:ArrowRight,chevron:ChevronRight,shield:ShieldCheck,check:Check,calendar:CalendarDays,note:NotebookPen,user:UserRound};
+  const icons = {chart:ChartNoAxesColumnIncreasing,help:CircleHelp,report:FileDown,home:House,history:History,settings:Settings,photo:Image,camera:Camera,plus:Plus,pin:MapPin,cloud:Cloud,arrow:ArrowRight,chevron:ChevronRight,shield:ShieldCheck,check:Check,calendar:CalendarDays,note:NotebookPen,user:UserRound};
   const Symbol=icons[name];
   return <Symbol className={`shrink-0 ${className}`} strokeWidth={1.8} aria-hidden="true"/>;
 }
