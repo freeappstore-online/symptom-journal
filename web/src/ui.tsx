@@ -1,3 +1,4 @@
+import { formatLocale, t } from "./language";
 import { ChartNoAxesColumnIncreasing, CircleHelp, House, History, Settings, Image, Camera, Plus, MapPin, Cloud, ArrowRight, ChevronRight, ShieldCheck, Check, CalendarDays, NotebookPen, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Entry } from "./store";
@@ -56,11 +57,11 @@ export function ProfileInitial({
 }
 export function StepProgress({current}:{current:number}) {
   const labels=["Record","Review"];
-  return <ol aria-label="Entry progress" className="mb-6 grid grid-cols-2 pt-2">
+  return <ol aria-label={t("Entry progress")} className="mb-6 grid grid-cols-2 pt-2">
     {labels.map((label,i)=>{
       const done=current>i+1,active=current===i+1;
       return <li key={label} aria-current={active?"step":undefined} className="relative flex flex-col items-center gap-2">
-        <span className={`text-[.6rem] font-bold uppercase tracking-widest ${done||active?"text-accent-deep":"text-muted"}`}>{label}</span>
+        <span className={`text-[.6rem] font-bold uppercase tracking-widest ${done||active?"text-accent-deep":"text-muted"}`}>{t(label)}</span>
         <div className="relative flex h-7 w-full items-center justify-center">
           {i>0 && <span aria-hidden="true" className={`absolute right-1/2 h-1 w-1/2 ${current>=i+1?"bg-accent":"bg-line"}`} />}
           {i<labels.length-1 && <span aria-hidden="true" className={`absolute left-1/2 h-1 w-1/2 ${done?"bg-accent":"bg-line"}`} />}
@@ -68,7 +69,7 @@ export function StepProgress({current}:{current:number}) {
             {done && <Icon name="check" className="size-3.5"/>}
           </span>
         </div>
-        <span className="sr-only">Step {i+1} of 2{done?", completed":active?", current":", upcoming"}</span>
+        <span className="sr-only">{t("Step {step} of {total}", {step:i+1,total:2})}{done ? `, ${t("completed")}` : ""}</span>
       </li>;
     })}
   </ol>;
@@ -89,14 +90,14 @@ export function DiarySummary({ entries }: { entries: Entry[] }) {
   return (
     <section
       className="rounded-[1.75rem] bg-hero-start text-on-hero p-5 sm:p-6"
-      aria-label="Diary summary"
+      aria-label={t("Diary summary")}
     >
       <div className="flex items-center gap-3">
         <span className="flex size-11 items-center justify-center rounded-full bg-panel text-accent">
           <Icon name="calendar" />
         </span>
         <p className="text-sm font-semibold text-on-hero">
-          {now.toLocaleDateString(undefined, {
+          {now.toLocaleDateString(formatLocale(), {
             weekday: "long",
             day: "numeric",
             month: "short",
@@ -109,11 +110,11 @@ export function DiarySummary({ entries }: { entries: Entry[] }) {
             {today}
           </span>
           <span className="mt-1 block text-sm text-on-hero">
-            {today === 1 ? "entry" : "entries"} today
+            {today === 1 ? t("entry") : t("entries")} {t("today")}
           </span>
         </p>
         <p className="rounded-full bg-panel px-4 py-2 text-sm text-muted">
-          <span className="font-bold text-ink">{week}</span> past 7 days
+          <span className="font-bold text-ink">{week}</span> {t("past 7 days")}
         </p>
       </div>
     </section>
@@ -126,7 +127,7 @@ export function SeverityRating({ value }: { value: number | undefined }) {
         {value ?? "—"}
       </span>
       <span className="block text-[.65rem] leading-relaxed text-muted">
-        of 10
+        {t("of 10")}
       </span>
     </span>
   );
@@ -147,7 +148,7 @@ export function ScoreControl({
   return (
     <label className="block rounded-[1.75rem] bg-sky-soft p-4">
       <span className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-sm font-semibold">{t(label)}</span>
         <span className="text-xs text-muted">
           <span
             className={`text-2xl font-semibold ${tone === "pain" ? "text-pain" : "text-accent-deep"}`}
@@ -168,18 +169,18 @@ export function ScoreControl({
         onChange={(e) => onChange(Number(e.target.value))}
       />
       <span className="flex justify-between text-[.65rem] text-muted">
-        <span>0 · None</span>
-        <span>10 · Very strong</span>
+        <span>{t("0 · None")}</span>
+        <span>{t("10 · Very strong")}</span>
       </span>
     </label>
   );
 }
 
-export function StepActions({ onSkip, onNext, disabled = false, skipLabel = "Skip this step", nextLabel = "Continue" }: {
+export function StepActions({ onSkip, onNext, disabled = false, skipLabel = "Skip this step", nextLabel = t("Continue") }: {
   onSkip?: () => void; onNext: () => void; disabled?: boolean; skipLabel?: string; nextLabel?: ReactNode;
 }) {
-  return <div className="flex items-center gap-3 border-t border-line pt-5" aria-label="Step actions">
-    {onSkip && <button type="button" className="min-h-12 shrink-0 px-2 text-sm font-semibold text-accent underline underline-offset-4" onClick={onSkip}>{skipLabel}</button>}
+  return <div className="flex items-center gap-3 border-t border-line pt-5" aria-label={t("Step actions")}>
+    {onSkip && <button type="button" className="min-h-12 shrink-0 px-2 text-sm font-semibold text-accent underline underline-offset-4" onClick={onSkip}>{t(skipLabel)}</button>}
     <button type="button" className={`${buttonPrimary} ml-auto min-w-32`} disabled={disabled} onClick={onNext}>{nextLabel}</button>
   </div>;
 }

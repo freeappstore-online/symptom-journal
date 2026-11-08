@@ -1,3 +1,4 @@
+import { t, displayLabel } from "./language";
 import { GestureGuide } from "./GestureGuide";
 import { LibrarySelect } from "./LibrarySelect";
 import { detailedSurfaceLocation } from "./surface-detail";
@@ -50,9 +51,9 @@ function RegionFields({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="text-sm font-semibold">
-        Body region
+        {t("Body region")}
         <select
-          aria-label="Body region"
+          aria-label={t("Body region")}
           className={`${inputClass} mt-1`}
           value={s.regionId}
           onChange={(e) => {
@@ -69,15 +70,15 @@ function RegionFields({
         >
           {bodyRegions.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.name}
+              {displayLabel(r.name)}
             </option>
           ))}
         </select>
       </label>
       <label className="text-sm font-semibold">
-        Part of region
+        {t("Part of region")}
         <select
-          aria-label="Part of region"
+          aria-label={t("Part of region")}
           className={`${inputClass} mt-1`}
           value={s.aspect}
           onChange={(e) => {
@@ -106,7 +107,7 @@ function RegionFields({
         >
           {aspects.map((a) => (
             <option key={a} value={a}>
-              {aspectNames[a]}
+              {t(aspectNames[a])}
             </option>
           ))}
         </select>
@@ -164,12 +165,12 @@ export function AnatomyPicker({
   }
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted">Tap a body part, or choose its name.</p>
-      <Modal open={showHelp} onClose={dismissGuide} title="Explore the body map" maxWidth={420}>
+      <p className="text-sm text-muted">{t("Tap a body part, or choose its name.")}</p>
+      <Modal open={showHelp} onClose={dismissGuide} title={t("Explore the body map")} maxWidth={420}>
         <div className="space-y-4">
           <GestureGuide/>
-          <p className="text-xs text-muted">Scroll outside the map.</p>
-          <button type="button" className={`${buttonPrimary} w-full`} onClick={dismissGuide}>Start mapping</button>
+          <p className="text-xs text-muted">{t("Scroll outside the map.")}</p>
+          <button type="button" className={`${buttonPrimary} w-full`} onClick={dismissGuide}>{t("Start mapping")}</button>
         </div>
       </Modal>
       <div className="relative">
@@ -177,53 +178,52 @@ export function AnatomyPicker({
           <Viewer model={model} onPick={pick} focus={selected?.surface3d?.focus} surface={selected?.surface3d} />
         </div>
         {asking && <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-scrim p-4">
-          <section role="dialog" aria-label={guide==="ask-area"?"Mark a wider area":"Mark an exact or most painful spot"} className="w-full max-w-sm space-y-4 rounded-3xl bg-panel p-5 shadow-lg">
-            <p className="text-xs font-bold text-muted">{guide==="ask-area"?"1 · Wider area":"2 · Exact or most painful spot"}</p>
+          <section role="dialog" aria-label={guide==="ask-area"?t("Mark a wider area"):t("Mark an exact or most painful spot")} className="w-full max-w-sm space-y-4 rounded-3xl bg-panel p-5 shadow-lg">
+            <p className="text-xs font-bold text-muted">{guide==="ask-area"?t("1 · Wider area"):t("2 · Exact or most painful spot")}</p>
             <svg aria-hidden="true" viewBox="0 0 160 66" className="h-16 w-full text-accent" fill="none">
               <path d="M30 56Q42 10 80 10T130 56" stroke="currentColor" strokeWidth="2" opacity=".3"/>
               {guide==="ask-area"?<ellipse cx="80" cy="34" rx="32" ry="20" fill="currentColor" fillOpacity=".2" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3"/>:<><circle cx="80" cy="34" r="17" stroke="currentColor" strokeWidth="2"/><circle cx="80" cy="34" r="5" fill="currentColor"/></>}
             </svg>
-            <h2 className="text-xl">{guide==="ask-area"?"Does it cover a wider area?":"Is there an exact or most painful spot?"}</h2>
-            <p className="text-sm text-muted">{guide==="ask-area"?"Tap the centre, then resize the shaded area.":"Tap the point that best matches where you feel it."}</p>
+            <h2 className="text-xl">{guide==="ask-area"?t("Does it cover a wider area?"):t("Is there an exact or most painful spot?")}</h2>
+            <p className="text-sm text-muted">{guide==="ask-area"?t("Tap the centre, then resize the shaded area."):t("Tap the point that best matches where you feel it.")}</p>
             <div className="flex items-center justify-between gap-3">
-              <button type="button" className={buttonSecondary} onClick={skipMark}>Skip {guide==="ask-area"?"area":"spot"}</button>
-              <button ref={promptButton} type="button" className={buttonPrimary} onClick={()=>{const tool=guide==="ask-area"?"area":"point";setMarkMode(tool);setGuide(tool);}}>Mark {guide==="ask-area"?"area":"spot"}</button>
+              <button type="button" className={buttonSecondary} onClick={skipMark}>{t(guide==="ask-area"?"Skip area":"Skip spot")}</button>
+              <button ref={promptButton} type="button" className={buttonPrimary} onClick={()=>{const tool=guide==="ask-area"?"area":"point";setMarkMode(tool);setGuide(tool);}}>{t(guide==="ask-area"?"Mark area":"Mark spot")}</button>
             </div>
           </section>
         </div>}
       </div>
-      {editing && selected && <section aria-label="Marking controls" className="space-y-3 rounded-3xl bg-panel p-4">
-        <p role="status" className="text-sm font-semibold">{guide==="area"?"Tap the centre of the wider area.":"Tap the exact or most painful spot on the body."}</p>
-        {guide==="area" && selected.surface3d?.area && <label className="block text-sm">Area size<input aria-label="Pain area size" type="range" min="8" max="80" className="block min-h-11 w-full accent-accent" value={Math.round(selected.surface3d.radius*1000)} onChange={e=>setSelected({...selected,surface3d:{...selected.surface3d!,radius:Number(e.target.value)/1000}})}/></label>}
+      {editing && selected && <section aria-label={t("Marking controls")} className="space-y-3 rounded-3xl bg-panel p-4">
+        <p role="status" className="text-sm font-semibold">{guide==="area"?t("Tap the centre of the wider area."):t("Tap the exact or most painful spot on the body.")}</p>
+        {guide==="area" && selected.surface3d?.area && <label className="block text-sm">{t("Area size")}<input aria-label={t("Pain area size")} type="range" min="8" max="80" className="block min-h-11 w-full accent-accent" value={Math.round(selected.surface3d.radius*1000)} onChange={e=>setSelected({...selected,surface3d:{...selected.surface3d!,radius:Number(e.target.value)/1000}})}/></label>}
         <div className="flex items-center justify-between gap-3">
-          <button type="button" className={buttonSecondary} onClick={skipMark}>Skip {guide==="area"?"area":"spot"}</button>
-          <button type="button" className={buttonPrimary} disabled={!selected.surface3d?.[guide==="area"?"area":"point"]} onClick={()=>{setMarkMode("region");setGuide(guide==="area"?"ask-point":"done");}}>Use this {guide==="area"?"area":"spot"}</button>
+          <button type="button" className={buttonSecondary} onClick={skipMark}>{t(guide==="area"?"Skip area":"Skip spot")}</button>
+          <button type="button" className={buttonPrimary} disabled={!selected.surface3d?.[guide==="area"?"area":"point"]} onClick={()=>{setMarkMode("region");setGuide(guide==="area"?"ask-point":"done");}}>{t(guide==="area"?"Use this area":"Use this spot")}</button>
         </div>
       </section>}
-      {guide==="done" && selected && <div className="flex items-center justify-between gap-3 text-sm"><p>{selected.surface3d?.area ? "Area marked" : "No wider area"} · {selected.surface3d?.point ? "Spot marked" : "No spot marked"}</p><button type="button" className="min-h-11 px-2 font-bold text-accent underline" onClick={()=>setGuide("ask-area")}>Edit markings</button></div>}
+      {guide==="done" && selected && <div className="flex items-center justify-between gap-3 text-sm"><p>{selected.surface3d?.area ? t("Area marked") : t("No wider area")} · {selected.surface3d?.point ? t("Spot marked") : t("No spot marked")}</p><button type="button" className="min-h-11 px-2 font-bold text-accent underline" onClick={()=>setGuide("ask-area")}>{t("Edit markings")}</button></div>}
 
       {selected && guide==="done" ? (
         <div className="space-y-3 rounded-3xl bg-sky-soft p-4">
           <SubregionField compact value={selected} onChange={setSelected}/>
           {selection?.(selected)}
-          <details className="text-sm"><summary className="min-h-11 cursor-pointer py-3 font-semibold text-accent">Change body region or side</summary><RegionFields value={selected} onChange={chooseRegion}/></details>
+          <details className="text-sm"><summary className="min-h-11 cursor-pointer py-3 font-semibold text-accent">{t("Change body region or side")}</summary><RegionFields value={selected} onChange={chooseRegion}/></details>
 
 
         </div>
       ) : !selected ? (
         <label className="block text-sm font-semibold">
-          Choose by name
-          <LibrarySelect label="Search body regions" value="" options={bodyRegions.map(r=>({id:r.id,label:r.name}))} onChange={id=>{const r=bodyRegions.find(r=>r.id===id);if(r)chooseRegion(surfaceLocation(r,{position:r.at,normal:{x:0,y:0,z:1}},"front",model));}}/>
+          {t("Choose by name")}
+          <LibrarySelect label={t("Search body regions")} value="" options={bodyRegions.map(r=>({id:r.id,label:r.name}))} onChange={id=>{const r=bodyRegions.find(r=>r.id===id);if(r)chooseRegion(surfaceLocation(r,{position:r.at,normal:{x:0,y:0,z:1}},"front",model));}}/>
         </label>
       ) : null}
       {!asking && !editing && <StepActions onSkip={onSkip} skipLabel={skipLabel} disabled={!selected || !ready} onNext={() => selected && onChoose(selected)} />}
       <details className="text-xs text-muted">
         <summary className="min-h-11 cursor-pointer py-3">
-          About this body map
+          {t("About this body map")}
         </summary>
         <p>
-          Adult {model === MALE_MODEL_ID ? "male" : "female"} reference. Regions
-          are approximate and need clinical review. MakeHuman core assets, CC0.
+          {t(model === MALE_MODEL_ID ? "Adult male" : "Adult female")}. {t("Regions are approximate and need clinical review. MakeHuman core assets, CC0.")}
         </p>
         <a
           href="/anatomy/SOURCES.md"
@@ -231,7 +231,7 @@ export function AnatomyPicker({
           rel="noreferrer"
           className="inline-block min-h-11 py-3 underline"
         >
-          Sources and licences
+          {t("Sources and licences")}
         </a>
       </details>
     </div>
@@ -275,8 +275,8 @@ export function AnatomySketch({
 
           <p className="mt-1 text-sm text-muted">
             {stage === "area"
-              ? "Tap the centre, then adjust the size."
-              : "Tap the most painful spot."}
+              ? t("Tap the centre, then adjust the size.")
+              : t("Tap the most painful spot.")}
           </p>
         </div>
       )}
@@ -287,7 +287,7 @@ export function AnatomySketch({
         readOnly={readOnly}
         onPick={(a) => change(setSurfaceMark(value, target, a))}
       />
-      {showLabel && <p className="text-sm font-semibold">{locationLabel(value)}</p>}
+      {showLabel && <p className="text-sm font-semibold">{displayLabel(locationLabel(value))}</p>}
       {!readOnly && (
         <>
           <div className="flex flex-wrap gap-3">
@@ -300,21 +300,21 @@ export function AnatomySketch({
                 setHistory((h) => h.slice(0, -1));
               }}
             >
-              Undo
+              {t("Undo")}
             </button>
             <button
               className="min-h-11 px-2 text-sm font-semibold text-accent underline disabled:opacity-40"
               disabled={!placed}
               onClick={() => change(setSurfaceMark(value, target))}
             >
-              Clear {stage === "area" ? "area" : "point"}
+              {t(stage === "area" ? "Clear area" : "Clear point")}
             </button>
           </div>
           {stage === "area" && s.area && (
             <label className="block text-sm font-semibold">
-              Area size
+              {t("Area size")}
               <input
-                aria-label="Pain area size"
+                aria-label={t("Pain area size")}
                 type="range"
                 min="8"
                 max="80"
@@ -328,12 +328,12 @@ export function AnatomySketch({
                 }
               />
               <span className="flex justify-between text-xs font-normal text-muted">
-                <span>Smaller</span>
-                <span>Larger</span>
+                <span>{t("Smaller")}</span>
+                <span>{t("Larger")}</span>
               </span>
             </label>
           )}
-          <StepActions disabled={!placed} onNext={() => next(value)} skipLabel={stage === "area" ? "Skip area" : "Skip point"}
+          <StepActions disabled={!placed} onNext={() => next(value)} skipLabel={stage === "area" ? t("Skip area") : t("Skip point")}
             onSkip={() => { const l=setSurfaceMark(value,target); onChange?.(l); next(l); }} />
         </>
       )}
@@ -344,25 +344,22 @@ export function AnatomySketch({
             aria-expanded={reference}
             onClick={() => setReference((r) => !r)}
           >
-            {reference ? "Hide" : "Show"} knee bone reference
+            {t(reference ? "Hide knee bone reference" : "Show knee bone reference")}
           </button>
           {reference && (
             <div className="space-y-3">
               <p className="text-xs text-muted">
-                Right knee · Adult male reference · Bones only. Your pain mark
-                stays on the body surface.
+                {t("Right knee · Adult male reference · Bones only. Your pain mark stays on the body surface.")}
               </p>
               <Viewer reference readOnly />
               <ul className="space-y-1 text-sm">
-                <li>Femur — thigh bone</li>
-                <li>Patella — kneecap</li>
-                <li>Tibia — shin bone</li>
-                <li>Fibula — outer lower-leg bone</li>
+                <li>{t("Femur — thigh bone")}</li>
+                <li>{t("Patella — kneecap")}</li>
+                <li>{t("Tibia — shin bone")}</li>
+                <li>{t("Fibula — outer lower-leg bone")}</li>
               </ul>
               <p className="text-xs text-muted">
-                BodyParts3D, DBCLS · CC BY 4.0. Independent anatomy reference;
-                not aligned to the surface model. Cartilage and ligaments are
-                not shown.
+                {t("BodyParts3D, DBCLS · CC BY 4.0. Independent anatomy reference; not aligned to the surface model. Cartilage and ligaments are not shown.")}
               </p>
             </div>
           )}

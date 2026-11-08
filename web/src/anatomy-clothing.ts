@@ -1,14 +1,34 @@
-import { BufferAttribute, BufferGeometry } from "three";
-import type { MeshStandardMaterial, Color } from "three";
+import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
+import type { Color, Group } from "three";
 // Render-only fabric adjustments leave source geometry and saved anchors intact.
 export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean, color: Color, trim: Color) {
+  // Keep the hairline on the existing surface so scalp markings stay visible.
+  const hairShape = male ? `
+    float hairlineDistance(vec3 p) {
+      float angle = atan(p.x, p.z - 0.028);
+      float front = smoothstep(0.10, 0.95, cos(angle));
+      float temple = exp(-pow(abs(abs(angle) - 0.92) / 0.28, 2.0));
+      float line = mix(0.935, 0.968, front) + 0.008 * temple;
+      line += front * 0.005 * sin(2.0 * angle + 0.6);
+      return p.y - line;
+    }
+  ` : `
+    float hairlineDistance(vec3 p) {
+      float angle = atan(p.x, p.z - 0.023);
+      float front = smoothstep(0.20, 0.90, cos(angle));
+      float atEar = exp(-pow(abs(abs(angle) - 1.50) / 0.36, 2.0));
+      float part = exp(-pow(abs(angle + 0.18) / 0.17, 2.0));
+      float line = mix(0.910, 0.963, front) + 0.028 * atEar + 0.005 * part;
+      return p.y - line;
+    }
+  `;
   material.onBeforeCompile = shader => {
     shader.uniforms.garmentColor = {value:color};
     shader.uniforms.garmentTrim = {value:trim};
     shader.vertexShader = `${male ? "" : "attribute vec3 fabricNormal; attribute vec3 fabricPosition;"} varying vec3 garmentPosition; varying vec3 garmentSoftNormal;\n` + shader.vertexShader.replace("#include <begin_vertex>","#include <begin_vertex>\ngarmentPosition = position;\ngarmentSoftNormal = normalMatrix * \nGARMENT_NORMAL;");
     shader.vertexShader = shader.vertexShader.replace("GARMENT_NORMAL", male ? "normal" : "fabricNormal");
     if(!male) shader.vertexShader=shader.vertexShader.replace("garmentPosition = position;", "garmentPosition = position; transformed = fabricPosition;");
-    shader.fragmentShader = "varying vec3 garmentPosition; varying vec3 garmentSoftNormal; uniform vec3 garmentColor; uniform vec3 garmentTrim;\n" + shader.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
+    shader.fragmentShader = hairShape + "varying vec3 garmentPosition; varying vec3 garmentSoftNormal; uniform vec3 garmentColor; uniform vec3 garmentTrim;\n" + shader.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
       float ax = abs(garmentPosition.x);
       float gy = garmentPosition.y;
       float cloth = 0.0;
@@ -41,19 +61,18 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
         float nipple = (1.0 - smoothstep(0.35, 1.0, nippleDistance)) * smoothstep(0.055, 0.07, garmentPosition.z);
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.70, 0.74, 0.78), nipple);
       ` : ""}
-      // Sweep the hairline across the forehead, then taper it around the ears and nape.
-      if (gy > 0.89) {
+      if (gy > 0.90) {
+        float distanceToHairline = hairlineDistance(garmentPosition);
+        float fade = ${male ? "0.0045" : "0.0018"};
+        float edge = max(fwidth(distanceToHairline), fade);
+        float coverage = smoothstep(-edge, edge, distanceToHairline);
         float angle = atan(garmentPosition.x, garmentPosition.z - 0.025);
-        float facing = smoothstep(-0.6, 0.85, cos(angle));
-        float sweep = (0.0035 * sin(angle * 2.0 + 0.6) + 0.002 * sin(angle * 4.0)) * facing;
-        float hairline = mix(${male ? "0.927" : "0.907"}, ${male ? "0.969" : "0.964"}, facing) + sweep;
-        float edge = max(fwidth(gy - hairline), 0.0007);
-        float hair = smoothstep(-edge, edge, gy - hairline);
-        float flow = angle + 6.0 * (gy - 0.95);
-        float strands = 0.5 + 0.25 * sin(flow * 31.0) + 0.25 * sin(flow * 19.0 + 1.2);
-        float crown = smoothstep(0.976, 0.997, gy);
-        vec3 hairColor = mix(vec3(0.045, 0.063, 0.077), vec3(0.092, 0.118, 0.137), mix(strands, 0.55, crown));
-        diffuseColor.rgb = mix(diffuseColor.rgb, hairColor, hair);
+        float flow = ${male ? "angle + 4.0 * gy" : "angle + 10.0 * (gy - 0.95) * sin(angle + 0.25)"};
+        float grain = 0.5 + 0.21 * sin(19.0 * flow) + 0.12 * sin(31.0 * flow + 1.2);
+        grain = mix(grain, 0.5, smoothstep(0.08, 0.33, fwidth(flow) * 19.0));
+        float tone = mix(grain, smoothstep(0.94, 1.008, gy), 0.55);
+        vec3 hair = mix(vec3(0.038, 0.052, 0.063), vec3(0.058, 0.075, 0.087), tone);
+        diffuseColor.rgb = mix(diffuseColor.rgb, hair, coverage);
       }
 
     `);
@@ -63,7 +82,19 @@ export function addAnatomyClothing(material: MeshStandardMaterial, male: boolean
       normal = normalize(mix(normal, normalize(garmentSoftNormal), cloth));
     `);
   };
-  material.customProgramCacheKey = () => male ? "male-anatomy-details-v1" : "female-anatomy-details-v1";
+  material.customProgramCacheKey = () => male ? "male-anatomy-details-v2" : "female-anatomy-details-v2";
+}
+
+// Sit the tied hair against the female model's crown, behind the face and ears.
+export function addFemaleHairKnot(parent: Group): Mesh {
+  const knot = new Mesh(
+    new SphereGeometry(1, 32, 20),
+    new MeshStandardMaterial({ color: 0x3d4a53, roughness: 0.85 }),
+  );
+  knot.scale.set(0.020, 0.016, 0.015);
+  knot.position.set(0, 0.947, -0.032);
+  parent.add(knot);
+  return knot;
 }
 
 // A smooth fabric surface fitted to the surrounding breast envelope, excluding

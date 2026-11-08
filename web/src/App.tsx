@@ -1,3 +1,4 @@
+import { t, displayLabel, formatLocale, language, matchesLabel, setLanguage } from "./language";
 import { HelpPage } from "./HelpPage";
 import { SummaryOverview } from "./SummaryOverview";
 import { HistoryCalendar } from "./HistoryCalendar";
@@ -75,7 +76,7 @@ const sexLabel: Record<Sex, string> = {
   unspecified: "Prefer not to say",
 };
 const when = (s: string) =>
-  new Date(s).toLocaleString(undefined, {
+  new Date(s).toLocaleString(formatLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -123,6 +124,7 @@ function initial() {
   }
 }
 export default function App() {
+  const [locale, setLocale] = useState(language);
   const [boot] = useState(initial);
   const [diary, setDiary] = useState(boot.diary);
   const raw = useRef(boot.raw);
@@ -222,6 +224,19 @@ export default function App() {
     setEntryId(e.id);
     setStep("detail");
   };
+  const languagePicker = (
+    <label className="mb-4 flex items-center justify-between gap-3 text-sm font-semibold">
+      {t("Language")}
+      <select className="min-h-11 rounded-xl bg-panel px-3" value={locale} onChange={event => {
+        const value = event.target.value === "vi" ? "vi" : "en";
+        setLanguage(value);
+        setLocale(value);
+      }}>
+        <option value="en" lang="en">English</option>
+        <option value="vi" lang="vi">Tiếng Việt</option>
+      </select>
+    </label>
+  );
   const heading =
     step === "new"
       ? "Create a profile"
@@ -245,16 +260,16 @@ export default function App() {
                           ? "Summary"
                           : !profile
                             ? "Who is using Symptom Journal?"
-                            : `Hello, ${profile.name}`;
+                            : t("Hello, {name}", {name:profile.name});
   const isRecordingMenu = step === "home" && path === "/" && !!profile;
   const switchProfile = () => {
     setActive(null);
     navigate("/");
   };
   return (
-    <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[aria-label=Main]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
-      <Shell app={fas} appName="Symptom Journal" nav={NAV} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
-          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"help"}/><span>{i===2?"Settings":item.label}</span></a>)}
+    <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[data-journal-nav]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
+      <Shell app={fas} appName="Symptom Journal" nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
+          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"help"}/><span>{i===2?t("Settings"):item.label}</span></a>)}
         </nav>}>
         <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
@@ -263,8 +278,8 @@ export default function App() {
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3">
                     {step === "record" && <button className="min-h-11 font-semibold text-accent" type="submit"
-                      form="entry-form" formNoValidate name="intent" value="back">← Back</button>}
-                    <span className="font-semibold text-muted">{entryId ? "Edit entry" : "New entry"}</span>
+                      form="entry-form" formNoValidate name="intent" value="back">{t("← Back")}</button>}
+                    <span className="font-semibold text-muted">{entryId ? t("Edit entry") : t("New entry")}</span>
                   </div>
                   <button
                     className="min-h-11 text-muted"
@@ -273,22 +288,22 @@ export default function App() {
                       setNotice("");
                     }}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                 </div>
                 {category==="body" && <StepProgress current={step === "record" ? 2 : 1}/>}
               </>
             )}
             <PageHeader
-              title={heading}
+              title={t(heading)}
               actions={isRecordingMenu && (
                 <button type="button" className="min-h-11 shrink-0 text-xs text-accent underline underline-offset-4" onClick={switchProfile}>
-                  Switch profile
+                  {t("Switch profile")}
                 </button>
               )}
               description={
                 !profile && step === "home" && path === "/"
-                  ? "Choose a profile on this device."
+                  ? t("Choose a profile on this device.")
                   : undefined
               }
             />
@@ -302,7 +317,7 @@ export default function App() {
                   className="min-h-11 text-accent underline underline-offset-4"
                   onClick={switchProfile}
                 >
-                  Switch profile
+                  {t("Switch profile")}
                 </button>}
               </div>
             )}
@@ -311,7 +326,7 @@ export default function App() {
                 role="alert"
                 className="my-4 rounded-xl border border-danger bg-danger-soft p-4 text-ink"
               >
-                {error}
+                {t(error)}
               </div>
             )}
             {notice && (
@@ -319,7 +334,7 @@ export default function App() {
                 role="status"
                 className="my-4 rounded-xl bg-accent-soft p-3 text-sm"
               >
-                {notice}
+                {t(notice)}
               </p>
             )}
           </div>
@@ -363,34 +378,35 @@ export default function App() {
                   <div>
                     <h2 className="text-xl font-bold">{profile.name}</h2>
                     <p className="mt-1 text-muted">
-                      Age {profile.age} · {sexLabel[profile.sex]}
+                      {t("Age")} {profile.age} · {t(sexLabel[profile.sex])}
                     </p>
                     <p className="mt-1 text-sm text-muted">
-                      Body map:{" "}
+                      {t("Body map:")}{" "}
                       {profileIllustration(profile) === "list"
-                        ? "Body-part list"
+                        ? t("Body-part list")
                         : profileIllustration(profile) === "male"
-                          ? "Male"
-                          : "Female"}
+                          ? t("Male")
+                          : t("Female")}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button className={primary} onClick={() => navigate("/")}>
-                    Open diary
+                    {t("Open diary")}
                   </button>
                   <button
                     className={secondary}
                     onClick={() => setStep("editProfile")}
                   >
-                    Edit details
+                    {t("Edit details")}
                   </button>
                 </div>
               </Panel>
             ) : <ChooseFirst onChoose={() => navigate("/")}/>)}
             {step === "home" && path === "/" && !profile && (
               <>
+                {languagePicker}
                 <div className="divide-y divide-line overflow-hidden rounded-2xl bg-panel">
                   {diary.profiles.map((p, index) => (
                     <button
@@ -416,17 +432,17 @@ export default function App() {
                     >
                       <Icon name="plus" className="size-7" />
                     </span>
-                    <span className="font-semibold">Create a profile</span>
+                    <span className="font-semibold">{t("Create a profile")}</span>
                   </button>
                 </div>
                 <div className="flex gap-3 p-2">
                   <Icon name="shield" className="mt-0.5 size-5 text-accent" />
                   <div>
                     <p className="text-sm font-semibold">
-                      Separate profiles. One device.
+                      {t("Separate profiles. One device.")}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted">
-                      Profiles are not password-protected.
+                      {t("Profiles are not password-protected.")}
                     </p>
                   </div>
                 </div>
@@ -435,19 +451,19 @@ export default function App() {
             {step === "home" && path === "/" && profile && (
               <>
                 <HomeSnapshot entries={entries} />
-                <h2 className="text-base sm:text-lg [@media(max-height:580px)]:sr-only">What would you like to record?</h2>
+                <h2 className="text-base sm:text-lg [@media(max-height:580px)]:sr-only">{t("What would you like to record?")}</h2>
                 <RecordTiles onChoose={start}/>
               </>
             )}
             {step === "map" && profile && (
               <>
                 <p className="sr-only">
-                  Step 1 of 2
+                  {t("Step 1 of 2")}
                 </p>
                 <RegionPicker
                   model={profileModel(profile) ?? undefined}
                   key={profileModel(profile)}
-                  skipLabel="No specific location"
+                  skipLabel={t("No specific location")}
                   initialValue={location}
                   ready={entrySymptoms(draft ?? (entryId?entry:undefined)).length>0}
                   selection={l=><LocationObservation location={l} value={entrySymptoms(draft ?? (entryId?entry:undefined))}
@@ -515,7 +531,7 @@ export default function App() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="break-words text-2xl font-bold">
-                        {entryTitle(entry)}
+                        {displayLabel(entryTitle(entry))}
                       </h2>
                       <p className="mt-2 text-sm text-muted">
                         {when(entry.occurredAt)}
@@ -525,17 +541,17 @@ export default function App() {
                       <SeverityRating value={entry.severity} />
                     )}
                   </div>
-                  {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entry.symptoms.map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{s.name}</span><SeverityRating value={s.severity}/></li>)}</ul>}
-                  {entry.temperature && <p className="mt-3 text-sm text-muted">{entry.temperature.method || "Measurement site not recorded"}</p>}
+                  {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entry.symptoms.map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{displayLabel(s.name)}</span><SeverityRating value={s.severity}/></li>)}</ul>}
+                  {entry.temperature && <p className="mt-3 text-sm text-muted">{displayLabel(entry.temperature.method) || "Measurement site not recorded"}</p>}
                   <dl className="my-5 grid grid-cols-2 gap-4">
                     <div>
-                      <dt className="text-sm text-muted">Location</dt>
+                      <dt className="text-sm text-muted">{t("Location")}</dt>
                       <dd className="font-semibold">
-                        {entry.location ? specificLocationName(entry.location) : "No specific location"}
+                        {entry.location ? displayLabel(specificLocationName(entry.location)) : t("No specific location")}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-muted">Duration</dt>
+                      <dt className="text-sm text-muted">{t("Duration")}</dt>
                       <dd className="break-words font-semibold">
                         {entry.duration || "Not recorded"}
                       </dd>
@@ -560,7 +576,7 @@ export default function App() {
                   <EntryPhotos photos={entry.photos} />
                   {entry.notes && (
                     <div className="mt-5 rounded-3xl bg-sky-soft p-4">
-                      <h3 className="mb-2 text-sm font-semibold">Your notes</h3>
+                      <h3 className="mb-2 text-sm font-semibold">{t("Your notes")}</h3>
                       <p className="whitespace-pre-wrap break-words">
                         {entry.notes}
                       </p>
@@ -580,7 +596,7 @@ export default function App() {
                       setStep("record");
                     }}
                   >
-                    Edit entry
+                    {t("Edit entry")}
                   </button>
                   <button
                     className={secondary}
@@ -589,13 +605,13 @@ export default function App() {
                       setEntryId(null);
                     }}
                   >
-                    Back to diary
+                    {t("Back to diary")}
                   </button>
                   <button
                     className="min-h-12 px-3 text-danger underline"
                     onClick={() => setDeleteEntry(entry.id)}
                   >
-                    Delete entry
+                    {t("Delete entry")}
                   </button>
                 </div>
               </>
@@ -605,8 +621,8 @@ export default function App() {
               (profile ? (
                 <>
                   <SummaryOverview key={profile.id} entries={entries} onOpen={openEntry} />
-                  <label className="block space-y-2 text-sm font-bold">Body-part history
-                    <LibrarySelect label="Filter history by body part" value={historyPart} onChange={setHistoryPart} options={[{id:"",label:"All entries"},...[...new Set(entries.flatMap(e=>e.location?[e.location.region,specificLocationName(e.location)]:[]))].sort().map(label=>({id:label,label}))]}/>
+                  <label className="block space-y-2 text-sm font-bold">{t("Body-part history")}
+                    <LibrarySelect label={t("Filter history by body part")} value={historyPart} onChange={setHistoryPart} options={[{id:"",label:"All entries"},...[...new Set(entries.flatMap(e=>e.location?[e.location.region,specificLocationName(e.location)]:[]))].sort().map(label=>({id:label,label}))]}/>
 
                   </label>
                   <TemperatureHistory entries={historyEntries} onOpen={id=>{const e=entries.find(e=>e.id===id);if(e)openEntry(e);}}/>
@@ -620,21 +636,21 @@ export default function App() {
                     }}
                   />
                   <label className="block">
-                    <span className="sr-only">Search your diary</span>
+                    <span className="sr-only">{t("Search your diary")}</span>
                     <SearchInput
                       value={query}
                       onChange={setQuery}
-                      placeholder="Search your diary"
+                      placeholder={t("Search your diary")}
                     />
                   </label>
-                  <HistoryCalendar entries={historyEntries.filter(e=>`${entryTitle(e)} ${e.location?specificLocationName(e.location):""}`.toLowerCase().includes(query.toLowerCase()))}>{day=><EntryList entries={day} onOpen={openEntry}/>}</HistoryCalendar>
+                  <HistoryCalendar entries={historyEntries.filter(e=>matchesLabel(`${entryTitle(e)}${e.location?` · ${specificLocationName(e.location)}`:""}`,query))}>{day=><EntryList entries={day} onOpen={openEntry}/>}</HistoryCalendar>
 
                   {entries.length > 0 && (
                     <button
                       className={secondary}
                       onClick={() => setStep("report")}
                     >
-                      Preview printable report
+                      {t("Preview printable report")}
                     </button>
                   )}
                 </>
@@ -644,17 +660,17 @@ export default function App() {
             {step === "report" && profile && (
               <>
                 <button className={`${primary} print:hidden`} onClick={() => window.print()}>
-                  Print or save PDF
+                  {t("Print or save PDF")}
                 </button>
                 <article className="symptom-report mt-4 space-y-5 rounded-[1.75rem] bg-panel p-5 print:mt-0 print:p-0">
                   <div className="break-inside-avoid space-y-1">
-                    <h2 className="text-2xl font-bold">Symptom report</h2>
+                    <h2 className="text-2xl font-bold">{t("Symptom report")}</h2>
                     <p className="break-words font-semibold">{profile.name}</p>
                     <p className="text-sm text-muted">
-                      {historyEntries.length} {historyEntries.length === 1 ? "entry" : "entries"}
-                      {historyPart && ` · ${historyPart}`}
+                      {historyEntries.length} {historyEntries.length === 1 ? t("entry") : t("entries")}
+                      {historyPart && ` · ${displayLabel(historyPart)}`}
                     </p>
-                    {historyEntries.some(e=>e.location) && <p className="text-sm text-muted">Left and right refer to the patient’s own body.</p>}
+                    {historyEntries.some(e=>e.location) && <p className="text-sm text-muted">{t("Left and right refer to the patient’s own body.")}</p>}
                   </div>
                   {historyEntries.map(e => {
                     const symptoms = entrySymptoms(e);
@@ -662,26 +678,26 @@ export default function App() {
                     return <section key={e.id} className="space-y-3 border-t border-line pt-4">
                       <div className="break-inside-avoid space-y-2">
                         <time className="block text-sm text-muted" dateTime={e.occurredAt}>{when(e.occurredAt)}</time>
-                        <h3 className="text-lg font-bold">{heading}</h3>
-                        {!!symptoms.length && <ul className="divide-y divide-line text-sm" aria-label="Symptom severity">
+                        <h3 className="text-lg font-bold">{displayLabel(heading)}</h3>
+                        {!!symptoms.length && <ul className="divide-y divide-line text-sm" aria-label={t("Symptom severity")}>
                           {symptoms.map((symptom,i) => <li key={i} className="flex justify-between gap-3 py-1.5">
-                            <span className="min-w-0 break-words">{symptom.name}</span>
-                            <span className="shrink-0 tabular-nums" aria-label={`Severity ${symptom.severity} out of 10`}>{symptom.severity}/10</span>
+                            <span className="min-w-0 break-words">{displayLabel(symptom.name)}</span>
+                            <span className="shrink-0 tabular-nums" aria-label={t("Severity {score} out of 10", {score:symptom.severity})}>{symptom.severity}/10</span>
                           </li>)}
                         </ul>}
-                        {e.temperature && <p className="text-sm"><strong>{e.temperature.celsius.toFixed(1)} °C</strong>{e.temperature.method && ` · ${e.temperature.method}`}</p>}
-                        {e.duration && <p className="text-sm">Duration {e.duration}</p>}
+                        {e.temperature && <p className="text-sm"><strong>{e.temperature.celsius.toFixed(1)} °C</strong>{e.temperature.method && ` · ${displayLabel(e.temperature.method)}`}</p>}
+                        {e.duration && <p className="text-sm">{t("Duration")} {e.duration}</p>}
                       </div>
-                      {!!e.feelings?.length && <ul className="divide-y divide-line text-sm" aria-label="Other symptoms and mood">
+                      {!!e.feelings?.length && <ul className="divide-y divide-line text-sm" aria-label={t("Other symptoms and mood")}>
                         {e.feelings.map((feeling,i) => <li key={i} className="break-inside-avoid py-1.5">
                           <div className="flex justify-between gap-3">
-                            <span className="min-w-0 break-words">{feeling.name}{feeling.kind === "mood" && <span className="text-muted"> · Mood</span>}</span>
-                            <span className="shrink-0 tabular-nums" aria-label={`Intensity ${feeling.intensity} out of 10`}>{feeling.intensity}/10</span>
+                            <span className="min-w-0 break-words">{displayLabel(feeling.name)}{feeling.kind === "mood" && <span className="text-muted"> {t("· Mood")}</span>}</span>
+                            <span className="shrink-0 tabular-nums" aria-label={t("Intensity {score} out of 10", {score:feeling.intensity})}>{feeling.intensity}/10</span>
                           </div>
                           {feeling.notes && <p className="mt-1 whitespace-pre-wrap break-words">{feeling.notes}</p>}
                         </li>)}
                       </ul>}
-                      {e.notes && <p className="whitespace-pre-wrap break-words text-sm"><strong className="block">Notes</strong>{e.notes}</p>}
+                      {e.notes && <p className="whitespace-pre-wrap break-words text-sm"><strong className="block">{t("Notes")}</strong>{e.notes}</p>}
                       {e.location && (e.location.surface3d || (e.location.illustration && e.location.illustration !== "none")) && (
                         <div className="max-w-sm break-inside-avoid">
                           <LocationSketch value={e.location} readOnly showLabel={false}/>
@@ -695,19 +711,19 @@ export default function App() {
                   className={`${secondary} print:hidden`}
                   onClick={() => setStep("home")}
                 >
-                  Back to summary
+                  {t("Back to summary")}
                 </button>
               </>
             )}
             {step === "home" && path === "/help" && <HelpPage onBackup={()=>navigate("/settings")}/>}
             {step === "home" && path === "/settings" && (
               <>
-                <Panel><h2 className="text-lg font-bold">Profile</h2><button className={`${secondary} mt-3`} onClick={()=>navigate("/profile")}>View or edit profile details →</button></Panel>
+                {languagePicker}
+                <Panel><h2 className="text-lg font-bold">{t("Profile")}</h2><button className={`${secondary} mt-3`} onClick={()=>navigate("/profile")}>{t("View or edit profile details →")}</button></Panel>
                 <Panel>
-                  <h2 className="text-lg font-bold">Keep a copy</h2>
+                  <h2 className="text-lg font-bold">{t("Keep a copy")}</h2>
                   <p className="mt-2 text-sm text-muted">
-                    Backups include every profile and diary on this device.
-                    Store the file somewhere private.
+                    {t("Backups include every profile and diary on this device. Store the file somewhere private.")}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
@@ -720,21 +736,21 @@ export default function App() {
                       }}
                       disabled={!!boot.error}
                     >
-                      Export backup
+                      {t("Export backup")}
                     </button>
                     <button
                       className={secondary}
                       onClick={() => file.current?.click()}
                       disabled={!!boot.error}
                     >
-                      Restore backup
+                      {t("Restore backup")}
                     </button>
                     <input
                       ref={file}
                       type="file"
                       accept="application/json,.json"
                       className="hidden"
-                      aria-label="Choose a Symptom Journal backup"
+                      aria-label={t("Choose a Symptom Journal backup")}
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
                         e.target.value = "";
@@ -757,41 +773,35 @@ export default function App() {
                   </div>
                 </Panel>
                 <Panel>
-                  <h2 className="text-lg font-bold">On this device</h2>
+                  <h2 className="text-lg font-bold">{t("On this device")}</h2>
                   <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted">
                     <p>
-                      No symptom data is sent to a server. No analytics or
-                      remote error reporting.
+                      {t("No symptom data is sent to a server. No analytics or remote error reporting.")}
                     </p>
                     <p>
-                      Clearing browser data or losing this device can erase your
-                      diary. There is no automatic sync or recovery.
+                      {t("Clearing browser data or losing this device can erase your diary. There is no automatic sync or recovery.")}
                     </p>
                     <p>
-                      Local profiles are not locked. Anyone using this browser
-                      may open them.
+                      {t("Local profiles are not locked. Anyone using this browser may open them.")}
                     </p>
                     <p>
-                      Platform sign-in is separate from diary profiles and does
-                      not back up this diary.
+                      {t("Platform sign-in is separate from diary profiles and does not back up this diary.")}
                     </p>
                   </div>
                 </Panel>
                 <Panel>
-                  <h2 className="text-lg font-bold">About the diary</h2>
+                  <h2 className="text-lg font-bold">{t("About the diary")}</h2>
                   <p className="mt-3 text-sm text-muted">
-                    Record what you feel. This app does not diagnose conditions,
-                    assess urgency or recommend treatment.
+                    {t("Record what you feel. This app does not diagnose conditions, assess urgency or recommend treatment.")}
                   </p>
                   <p className="mt-3 text-sm text-muted">
-                    Body drawings are approximate surface guides. They do not
-                    identify organs or the cause of pain.
+                    {t("Body drawings are approximate surface guides. They do not identify organs or the cause of pain.")}
                   </p>
                   <a
                     href="https://freeappstore.online"
                     className="mt-3 inline-flex min-h-11 items-center text-sm text-accent underline"
                   >
-                    Part of FreeAppStore
+                    {t("Part of FreeAppStore")}
                   </a>
                 </Panel>
               </>
@@ -799,11 +809,11 @@ export default function App() {
             {step === "home" &&
               !["/", "/history", "/settings", "/profile", "/help"].includes(path) && (
                 <EmptyState
-                  title="Page not found"
-                  message="Open Diary to continue."
+                  title={t("Page not found")}
+                  message={t("Open Diary to continue.")}
                   action={
                     <button className={secondary} onClick={() => navigate("/")}>
-                      Open diary
+                      {t("Open diary")}
                     </button>
                   }
                 />
@@ -812,13 +822,13 @@ export default function App() {
         </div>
         <ConfirmDialog
           open={pending !== null}
-          title="Replace this device’s diary?"
+          title={t("Replace this device’s diary?")}
           message={
             pending
-              ? `Restore ${pending.profiles.length} profiles and ${pending.entries.length} entries. This replaces all current profiles and entries. Export a backup first if you need to keep them.`
+              ? t("Restore {profiles} profiles and {entries} entries. This replaces all current profiles and entries. Export a backup first if you need to keep them.", {profiles:pending.profiles.length, entries:pending.entries.length})
               : ""
           }
-          confirmLabel="Replace and restore"
+          confirmLabel={t("Replace and restore")}
           onCancel={() => setPending(null)}
           onConfirm={() => {
             if (pending && commit(pending)) {
@@ -831,9 +841,9 @@ export default function App() {
         />
         <ConfirmDialog
           open={deleteEntry !== null}
-          title="Delete this entry?"
-          message="This cannot be undone. Other entries will stay in your diary."
-          confirmLabel="Delete entry"
+          title={t("Delete this entry?")}
+          message={t("This cannot be undone. Other entries will stay in your diary.")}
+          confirmLabel={t("Delete entry")}
           variant="danger"
           onCancel={() => setDeleteEntry(null)}
           onConfirm={() => {
@@ -858,11 +868,11 @@ function ChooseFirst({ onChoose }: { onChoose: () => void }) {
   return (
     <Panel>
       <EmptyState
-        title="Choose a profile"
-        message="History is separate for each person."
+        title={t("Choose a profile")}
+        message={t("History is separate for each person.")}
         action={
           <button className={primary} onClick={onChoose}>
-            Choose a profile
+            {t("Choose a profile")}
           </button>
         }
       />
@@ -902,7 +912,7 @@ function ProfileForm({
             });
         }}
       >
-        <Field label="Name or nickname">
+        <Field label={t("Name or nickname")}>
           <input
             className={input}
             autoFocus
@@ -914,7 +924,7 @@ function ProfileForm({
           />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Age">
+          <Field label={t("Age")}>
             <input
               className={input}
               required
@@ -927,9 +937,9 @@ function ProfileForm({
               onChange={(e) => setAge(e.target.value)}
             />
           </Field>
-          <Field label="Sex">
+          <Field label={t("Sex")}>
             <select
-              aria-label="Sex"
+              aria-label={t("Sex")}
               className={input}
               value={sex}
               onChange={(e) => {
@@ -943,16 +953,16 @@ function ProfileForm({
             >
               {Object.entries(sexLabel).map(([k, v]) => (
                 <option value={k} key={k}>
-                  {v}
+                  {t(v)}
                 </option>
               ))}
             </select>
           </Field>
         </div>
         {age !== "" && Number(age) >= 18 ? (
-          <Field label="Body illustration">
+          <Field label={t("Body illustration")}>
             <select
-              aria-label="Body illustration"
+              aria-label={t("Body illustration")}
               className={input}
               value={bodyChoice}
               onChange={(e) => {
@@ -960,22 +970,22 @@ function ProfileForm({
                 setBodyChoice(e.target.value as BodyIllustration);
               }}
             >
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="list">Body-part list</option>
+              <option value="female">{t("Female")}</option>
+              <option value="male">{t("Male")}</option>
+              <option value="list">{t("Body-part list")}</option>
             </select>
             <p className="mt-2 text-xs text-muted">
-              Reference illustration only. Choose what suits you.
+              {t("Reference illustration only. Choose what suits you.")}
             </p>
           </Field>
         ) : (
           <p className="text-sm text-muted">
-            Under-18 profiles use the body-part list.
+            {t("Under-18 profiles use the body-part list.")}
           </p>
         )}
         <div className="flex gap-3">
-          <button className="min-h-12 px-2 text-sm font-semibold text-accent underline" type="button" onClick={onCancel}>Cancel</button>
-          <button className={`${primary} ml-auto`} type="submit">Save profile</button>
+          <button className="min-h-12 px-2 text-sm font-semibold text-accent underline" type="button" onClick={onCancel}>{t("Cancel")}</button>
+          <button className={`${primary} ml-auto`} type="submit">{t("Save profile")}</button>
         </div>
       </form>
     </Panel>
@@ -997,15 +1007,15 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
    ...(category==="temperature"?{temperature:{celsius:Math.round(celsius*100)/100,method}}:{})});
  const submit=(e:FormEvent)=>{e.preventDefault();if(busy)return;if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value")==="back"){onBack(snapshot());return;}if(valid)onSave(snapshot());};
  return <form id="entry-form" className="space-y-5" onSubmit={submit}>
-   {category==="body" ? <><div className="flex items-center justify-between gap-3"><h2 className="text-lg">{location?specificLocationName(location):"No location"}</h2><button type="button" className="min-h-11 text-sm text-accent underline" disabled={busy} onClick={()=>onLocation(snapshot())}>Edit body part</button></div>
-     <ul className="divide-y divide-line rounded-2xl bg-panel px-4">{symptoms.map(v=><li key={v.name} className="flex items-center justify-between gap-3 py-4"><span className="font-bold">{v.name}</span><SeverityRating value={v.severity}/></li>)}</ul>
-   </> : category==="temperature" ? <div className="space-y-4 rounded-3xl bg-panel p-5"><div className="grid grid-cols-[1fr_6rem] gap-3"><Field label="Temperature"><input aria-label="Temperature" type="number" min={unit==="C"?30:86} max={unit==="C"?45:113} step="0.1" required inputMode="decimal" className={input} value={temperature} onChange={e=>setTemperature(e.target.value)}/></Field><Field label="Unit"><select aria-label="Temperature unit" className={input} value={unit} onChange={e=>{const old=unit;if(temperature)setTemperature((old==="C"?Number(temperature)*9/5+32:(Number(temperature)-32)*5/9).toFixed(1));setUnit(e.target.value);}}><option value="C">°C</option><option value="F">°F</option></select></Field></div><Field label="Measurement site (optional)"><select className={input} value={method} onChange={e=>setMethod(e.target.value)}><option value="">Not recorded</option>{["Mouth","Armpit","Ear","Forehead","Rectal","Other"].map(m=><option key={m}>{m}</option>)}</select></Field></div> : <LocationObservation title={category==="mental"?"How are you feeling?":"What are you noticing?"} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} custom={custom} onSaveCustom={onSaveCustom}/>}
+   {category==="body" ? <><div className="flex items-center justify-between gap-3"><h2 className="text-lg">{location?displayLabel(specificLocationName(location)):t("No location")}</h2><button type="button" className="min-h-11 text-sm text-accent underline" disabled={busy} onClick={()=>onLocation(snapshot())}>{t("Edit body part")}</button></div>
+     <ul className="divide-y divide-line rounded-2xl bg-panel px-4">{symptoms.map(v=><li key={v.name} className="flex items-center justify-between gap-3 py-4"><span className="font-bold">{displayLabel(v.name)}</span><SeverityRating value={v.severity}/></li>)}</ul>
+   </> : category==="temperature" ? <div className="space-y-4 rounded-3xl bg-panel p-5"><div className="grid grid-cols-[1fr_6rem] gap-3"><Field label={t("Temperature")}><input aria-label={t("Temperature")} type="number" min={unit==="C"?30:86} max={unit==="C"?45:113} step="0.1" required inputMode="decimal" className={input} value={temperature} onChange={e=>setTemperature(e.target.value)}/></Field><Field label={t("Unit")}><select aria-label={t("Temperature unit")} className={input} value={unit} onChange={e=>{const old=unit;if(temperature)setTemperature((old==="C"?Number(temperature)*9/5+32:(Number(temperature)-32)*5/9).toFixed(1));setUnit(e.target.value);}}><option value="C">°C</option><option value="F">°F</option></select></Field></div><Field label={t("Measurement site (optional)")}><select className={input} value={method} onChange={e=>setMethod(e.target.value)}><option value="">{t("Not recorded")}</option>{["Mouth","Armpit","Ear","Forehead","Rectal","Other"].map(m=><option key={m} value={m}>{t(m)}</option>)}</select></Field></div> : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} custom={custom} onSaveCustom={onSaveCustom}/>}
    {!!feelings.length && <FeelingsSummary value={feelings}/>}
-   <Field label="When"><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
-   {category!=="temperature" && <Field label="Duration (optional)"><input className={input} maxLength={80} placeholder="e.g. 45 minutes" value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
-   <Field label="Notes (optional)"><textarea aria-label="Notes (optional)" className={input} maxLength={2000} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
+   <Field label={t("When")}><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
+   {category!=="temperature" && <Field label={t("Duration (optional)")}><input className={input} maxLength={80} placeholder={t("e.g. 45 minutes")} value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
+   <Field label={t("Notes (optional)")}><textarea aria-label={t("Notes (optional)")} className={input} maxLength={2000} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
    <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
-   <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> Save entry</button>
+   <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> {t("Save entry")}</button>
  </form>;
 }
 function EntryList({
@@ -1021,8 +1031,8 @@ function EntryList({
     return (
       <Panel>
         <EmptyState
-          title="No entries found"
-          message="Saved symptoms will appear here."
+          title={t("No entries found")}
+          message={t("Saved symptoms will appear here.")}
         />
       </Panel>
     );
@@ -1030,7 +1040,7 @@ function EntryList({
   for (const e of entries) {
     const d = new Date(e.occurredAt);
     const key = groupByDay
-      ? d.toLocaleDateString(undefined, {
+      ? d.toLocaleDateString(formatLocale(), {
           day: "numeric",
           month: "long",
           year: "numeric",
@@ -1049,7 +1059,7 @@ function EntryList({
               <h2 className="text-sm font-bold">{group.label}</h2>
               <span className="text-xs text-muted">
                 {group.entries.length}{" "}
-                {group.entries.length === 1 ? "entry" : "entries"}
+                {group.entries.length === 1 ? t("entry") : t("entries")}
               </span>
             </div>
           )}
@@ -1065,15 +1075,15 @@ function EntryList({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-sm font-bold">
-                  {e.location ? specificLocationName(e.location) : entryTitle(e)}
+                  {e.location ? displayLabel(specificLocationName(e.location)) : displayLabel(entryTitle(e))}
                 </span>
                 <span className="mt-1 block break-words text-xs text-muted">
                   {e.location
-                    ? entryTitle(e)
-                    : e.symptoms?.length ? (e.category==="mental"?"Mental health":"General symptoms") : e.temperature ? e.temperature.method || "Thermometer reading" : (e.feelings ?? [])
+                    ? displayLabel(entryTitle(e))
+                    : e.symptoms?.length ? (e.category==="mental"?t("Mental health"):t("General symptoms")) : e.temperature ? displayLabel(e.temperature.method) || t("Thermometer reading") : (e.feelings ?? [])
                         .slice(0, 2)
-                        .map((f) => f.name)
-                        .join(" · ") || "No specific location"}
+                        .map((f) => displayLabel(f.name))
+                        .join(" · ") || t("No specific location")}
                   {e.duration ? ` · ${e.duration}` : ""}
                 </span>
                 <span className="mt-1 block text-[.7rem] text-muted">
@@ -1081,15 +1091,15 @@ function EntryList({
                 </span>
                 {e.location && !!e.feelings?.length && (
                   <span className="mt-1 block text-[.7rem] text-muted">
-                    With{" "}
+                    {t("With")}{" "}
                     {e.feelings
                       .slice(0, 2)
-                      .map((f) => f.name.toLowerCase())
+                      .map((f) => displayLabel(f.name).toLocaleLowerCase(formatLocale()))
                       .join(" · ")}
                   </span>
                 )}
               </span>
-              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} symptoms</span> : e.kind !== "general" && !e.temperature && <SeverityRating value={e.severity} />}
+              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} {t("symptoms")}</span> : e.kind !== "general" && !e.temperature && <SeverityRating value={e.severity} />}
               <Icon name="chevron" className="size-3.5 text-line-strong" />
             </button>
           ))}

@@ -1,3 +1,4 @@
+import { t } from "./language";
 import { ArrowRight, Brain, ClipboardList, PersonStanding, Thermometer } from "lucide-react";
 import type { LogCategory } from "./store";
 
@@ -10,7 +11,7 @@ const tiles = [
 
 export function RecordTiles({ onChoose }: { onChoose: (category: LogCategory) => void }) {
   return (
-    <section aria-label="What would you like to record?" className="grid grid-cols-2 gap-2 sm:gap-3 [@media(min-width:600px)_and_(max-height:500px)]:grid-cols-4">
+    <section aria-label={t("What would you like to record?")} className="grid grid-cols-2 gap-2 sm:gap-3 [@media(min-width:600px)_and_(max-height:500px)]:grid-cols-4">
       {tiles.map(({ kind, title, hint, tone, icon: Symbol }) => (
         <button
           type="button"
@@ -26,8 +27,8 @@ export function RecordTiles({ onChoose }: { onChoose: (category: LogCategory) =>
               <ArrowRight className="size-4" aria-hidden="true" />
             </span>
           </span>
-          <span className="text-sm font-extrabold leading-snug text-ink-strong sm:text-base [@media(max-height:580px)]:text-xs">{title}</span>
-          <span className="mt-1 text-xs leading-snug text-muted [@media(max-height:580px)]:sr-only">{hint}</span>
+          <span className="text-sm font-extrabold leading-snug text-ink-strong sm:text-base [@media(max-height:580px)]:text-xs">{t(title)}</span>
+          <span className="mt-1 text-xs leading-snug text-muted [@media(max-height:580px)]:sr-only">{t(hint)}</span>
         </button>
       ))}
     </section>

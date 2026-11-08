@@ -1,3 +1,4 @@
+import { t, displayLabel } from "./language";
 import { LibrarySelect } from "./LibrarySelect";
 import { SubregionField } from "./SubregionField";
 import { BodyOrientation } from "./BodyOrientation";
@@ -63,15 +64,15 @@ function LegacyRegionPicker({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">
           {showVisual
-            ? "Tap a body part to select it."
-            : "Choose a body part from the list."}
+            ? t("Tap a body part to select it.")
+            : t("Choose a body part from the list.")}
         </p>
 
       </div>
       <Tabs
         tabs={[
-          { key: "front", label: "Front of body" },
-          { key: "back", label: "Back of body" },
+          { key: "front", label: t("Front of body") },
+          { key: "back", label: t("Back of body") },
         ]}
         active={view}
         onChange={(v) => {
@@ -85,7 +86,7 @@ function LegacyRegionPicker({
           <svg
             viewBox="0 0 200 490"
             role="img"
-            aria-label={`${view === "front" ? "Front" : "Back"} of body. Tap a body part, or use the list below.`}
+            aria-label={t(view === "front" ? "Front of body" : "Back of body")}
             className="mx-auto h-[22rem] w-full max-w-sm cursor-crosshair touch-manipulation"
             onPointerDown={(e) => {
               const p = svgPoint(e);
@@ -126,7 +127,7 @@ function LegacyRegionPicker({
       {showVisual ? (
         <details className="rounded-xl bg-panel px-4">
           <summary className="cursor-pointer py-3 text-sm font-semibold">
-            Choose from a list
+            {t("Choose from a list")}
           </summary>
           <RegionSelect selected={selected} view={view} onSelect={choose} />
         </details>
@@ -140,10 +141,10 @@ function LegacyRegionPicker({
       >
         <p aria-live="polite" className="mb-3 font-semibold">
           {selected
-            ? `${selected} · ${view === "front" ? "Front" : "Back"}`
-            : "Select a body part above"}
+            ? `${displayLabel(selected)} · ${t(view === "front" ? "Front" : "Back")}`
+            : t("Select a body part above")}
         </p>
-        <StepActions onSkip={onSkip} skipLabel={skipLabel} disabled={!selected || !ready} onNext={()=>selected && onChoose({...defaultLocation(selected,view),...(detail?{detail}:{}),illustration:showVisual?"adult-female":"none"})} />
+        <StepActions onSkip={onSkip} skipLabel={t(skipLabel)} disabled={!selected || !ready} onNext={()=>selected && onChoose({...defaultLocation(selected,view),...(detail?{detail}:{}),illustration:showVisual?"adult-female":"none"})} />
       </div>
     </div>
   );
@@ -157,7 +158,7 @@ function RegionSelect({
   view: "front" | "back";
   onSelect: (name: string) => void;
 }) {
-  return <div className="mb-4"><LibrarySelect label="Body part" value={selected??""} options={regions.map(r=>({id:bodyRegion(r.name,view),label:bodyRegion(r.name,view)}))} onChange={onSelect}/></div>;
+  return <div className="mb-4"><LibrarySelect label={t("Body part")} value={selected??""} options={regions.map(r=>({id:bodyRegion(r.name,view),label:bodyRegion(r.name,view)}))} onChange={onSelect}/></div>;
 }
 function svgPoint(e: PointerEvent<SVGSVGElement>): Point {
   const point = e.currentTarget.createSVGPoint();
@@ -254,25 +255,25 @@ function LegacyLocationSketch({
     <div className="space-y-4">
       {!readOnly && (
         <div aria-live="polite">
-          <p className="sr-only">Step {stage === "area" ? "1" : "2"} of 4</p>
+          <p className="sr-only">{t("Step {step} of {total}", {step:stage === "area" ? 1 : 2,total:4})}</p>
           <h2
             ref={stepHeading}
             tabIndex={-1}
             className="sr-only"
           >
-            {stage === "area" ? "Wider pain area" : "Most painful point"}{" "}
-            <span className="text-sm font-normal text-muted">(optional)</span>
+            {stage === "area" ? t("Wider pain area") : t("Most painful point")}{" "}
+            <span className="text-sm font-normal text-muted">{t("(optional)")}</span>
           </h2>
           <p id={hint} className="mt-2 text-sm text-muted">
-            {instruction}
+            {t(instruction)}
           </p>
         </div>
       )}
-      {showLabel && <p className="text-xs text-muted">{value.region} · {value.view === "front" ? "Front" : "Back"} · Patient’s perspective</p>}
+      {showLabel && <p className="text-xs text-muted">{displayLabel(value.region)} · {value.view === "front" ? t("Front") : t("Back")} · {t("Patient’s perspective")}</p>}
       <svg
         viewBox="0 0 100 100"
         role="img"
-        aria-label={`${value.region}, ${value.view}, ${readOnly ? modeLabel : stage === "area" ? "mark wider area" : "mark pain point"}`}
+        aria-label={`${displayLabel(value.region)}, ${t(value.view === "front" ? "Front" : "Back")}, ${t(readOnly ? modeLabel : stage === "area" ? "Mark a wider area" : "Pain point")}`}
         aria-describedby={readOnly ? undefined : hint}
         tabIndex={readOnly ? undefined : 0}
         className={`w-full rounded-[1.75rem] bg-paper-deep ${readOnly ? "max-h-48" : "max-h-80 cursor-crosshair touch-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"}`}
@@ -364,7 +365,7 @@ function LegacyLocationSketch({
       </svg>
       {readOnly && value.mode === "region" && (
         <p className="text-sm text-muted">
-          Body part recorded; no area or point marked.
+          {t("Body part recorded; no area or point marked.")}
         </p>
       )}
       {!readOnly && (
@@ -372,8 +373,8 @@ function LegacyLocationSketch({
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
             <span>
               {stage === "area"
-                ? "Shading shows where it hurts."
-                : "⊕ marks the most painful point."}
+                ? t("Shading shows where it hurts.")
+                : t("⊕ marks the most painful point.")}
             </span>
             <div className="flex gap-1">
               <button
@@ -388,7 +389,7 @@ function LegacyLocationSketch({
                   }
                 }}
               >
-                Undo
+                {t("Undo")}
               </button>
               <button
                 type="button"
@@ -396,15 +397,15 @@ function LegacyLocationSketch({
                 className="min-h-11 px-3 text-sm font-semibold text-accent disabled:opacity-40"
                 onClick={() => change(skipMark(value, activeTarget))}
               >
-                Clear {stage === "area" ? "area" : "point"}
+                {t(stage === "area" ? "Clear area" : "Clear point")}
               </button>
             </div>
           </div>
           {stage === "area" && placed.area && (
             <label className="block text-sm font-semibold">
-              Area size
+              {t("Area size")}
               <input
-                aria-label="Area size"
+                aria-label={t("Area size")}
                 className="mt-1 block min-h-11 w-full accent-accent"
                 type="range"
                 min="8"
@@ -420,26 +421,25 @@ function LegacyLocationSketch({
                 }}
               />
               <span className="flex justify-between text-xs font-normal text-muted">
-                <span>Smaller</span>
-                <span>Larger</span>
+                <span>{t("Smaller")}</span>
+                <span>{t("Larger")}</span>
               </span>
             </label>
           )}
           <details className="rounded-xl bg-panel px-4">
             <summary className="cursor-pointer py-3 text-sm font-semibold">
-              Fine-tune position
+              {t("Fine-tune position")}
             </summary>
             <p className="mb-2 text-xs text-muted">
-              Adjust {stage === "area" ? "the area" : "the point"}, or use arrow
-              keys on the map.
+              {t(stage === "area" ? "Adjust the area, or use arrow keys on the map." : "Adjust the point, or use arrow keys on the map.")}
             </p>
             <div className="grid grid-cols-2 gap-4">
               {(["x", "y"] as const).map((axis) => (
                 <label key={axis} className="text-sm">
-                  {axis === "x" ? "Left / right" : "Up / down"}
+                  {axis === "x" ? t("Left / right") : t("Up / down")}
                   <input
                     aria-label={
-                      axis === "x" ? "Horizontal position" : "Vertical position"
+                      axis === "x" ? t("Horizontal position") : t("Vertical position")
                     }
                     className="block min-h-11 w-full accent-accent"
                     type="range"
@@ -460,9 +460,9 @@ function LegacyLocationSketch({
             </div>
             {stage === "area" && placed.area && (
               <label className="mb-3 block text-sm">
-                Area height
+                {t("Area height")}
                 <input
-                  aria-label="Area height"
+                  aria-label={t("Area height")}
                   className="block min-h-11 w-full accent-accent"
                   type="range"
                   min="4"
@@ -476,7 +476,7 @@ function LegacyLocationSketch({
             )}
           </details>
           <StepActions disabled={!activePlaced} onNext={() => stage === "area" ? go("spot") : complete(value)}
-            onSkip={skip} skipLabel={stage === "area" ? "Skip area" : "Skip point"} />
+            onSkip={skip} skipLabel={stage === "area" ? t("Skip area") : t("Skip point")} />
         </>
       )}
     </div>

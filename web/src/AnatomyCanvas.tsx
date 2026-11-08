@@ -1,6 +1,7 @@
+import { t } from "./language";
 import { addAnatomyEyes } from "./anatomy-eyes";
 import { GestureGuide } from "./GestureGuide";
-import { addAnatomyClothing, prepareFabricNormals } from "./anatomy-clothing";
+import { addAnatomyClothing, addFemaleHairKnot, prepareFabricNormals } from "./anatomy-clothing";
 import { BodyOrientation } from "./BodyOrientation";
 import { bodyOrientation, type BodyOrientation as Orientation } from "./orientation";
 import { useEffect, useRef, useState } from "react";
@@ -81,8 +82,8 @@ function CanvasSurface(props: Props) {
     renderer.domElement.setAttribute(
       "aria-label",
       props.reference
-        ? "Rotatable right-knee bone reference"
-        : `Rotatable adult ${modelId === MALE_MODEL_ID ? "male" : "female"} body. Use the region list if you cannot use the model.`,
+        ? t("Rotatable right-knee bone reference")
+        : t(modelId === MALE_MODEL_ID ? "Rotatable adult male body. Use the region list if you cannot use the model." : "Rotatable adult female body. Use the region list if you cannot use the model."),
     );
     renderer.domElement.setAttribute("role", "img");
     el.appendChild(renderer.domElement);
@@ -113,6 +114,7 @@ function CanvasSurface(props: Props) {
     scene.add(overlay);
     const targets: THREE.Mesh[] = [];
     let eyeTargets: THREE.Mesh[] = [];
+    let hairKnot: THREE.Mesh | undefined;
     const draw = () => {
       if (!disposed) {
         renderer.render(scene, camera);
@@ -147,6 +149,13 @@ function CanvasSurface(props: Props) {
     function paint() {
       clearOverlay();
       const s = current.current.surface;
+      // Keep the back of the scalp visible while showing marks in that region.
+      if (hairKnot) {
+        const rearScalp = (anchor: Anchor | undefined) =>
+          !!anchor && anchor.position.y > 0.91 && anchor.position.z < 0;
+        hairKnot.visible = !rearScalp(s?.focus) && !rearScalp(s?.point) && !rearScalp(s?.area)
+          && !current.current.historyMarks?.some(mark => rearScalp(mark.anchor));
+      }
       if (current.current.historyMarks?.length && !props.reference) {
         // Bin nearby observations to bound CPU work while preserving count and mean score.
         const bins=new Map<string,{position:THREE.Vector3;normal:THREE.Vector3;count:number;sum:number}>();
@@ -390,7 +399,10 @@ function CanvasSurface(props: Props) {
             targets.push(c);
           }
         });
-        if (!props.reference) eyeTargets = addAnatomyEyes(object, modelId === MALE_MODEL_ID);
+        if (!props.reference) {
+          eyeTargets = addAnatomyEyes(object, modelId === MALE_MODEL_ID);
+          if (modelId !== MALE_MODEL_ID) hairKnot = addFemaleHairKnot(object);
+        }
         content.add(object);
         cameraReset();
         paint();
@@ -424,22 +436,22 @@ function CanvasSurface(props: Props) {
   useEffect(() => { api.current?.view("reset"); }, [props.focus]);
   return (
     <div className="space-y-3">
-      <Modal open={help} onClose={()=>setHelp(false)} title="Explore the body map" maxWidth={420}><GestureGuide/><button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(false)}>Got it</button></Modal>
+      <Modal open={help} onClose={()=>setHelp(false)} title={t("Explore the body map")} maxWidth={420}><GestureGuide/><button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(false)}>{t("Got it")}</button></Modal>
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
           className={`${props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
-        <button type="button" aria-label="Open body map gesture guide" title="Gesture guide" className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
-        {status === "ready" && <div role="group" aria-label="Move and zoom body map" className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
+        <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
+        {status === "ready" && <div role="group" aria-label={t("Move and zoom body map")} className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
-            <button type="button" title="Move view up" aria-label="Move view up" className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
-            <button type="button" title="Move view down" aria-label="Move view down" className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(-1)}>↓</button>
+            <button type="button" title={t("Move view up")} aria-label={t("Move view up")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
+            <button type="button" title={t("Move view down")} aria-label={t("Move view down")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(-1)}>↓</button>
           </div>
           <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
-            <button type="button" title="Zoom in" aria-label="Zoom in" className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(0.8)}>+</button>
-            <button type="button" title="Zoom out" aria-label="Zoom out" className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(1.25)}>−</button>
+            <button type="button" title={t("Zoom in")} aria-label={t("Zoom in")} className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(0.8)}>+</button>
+            <button type="button" title={t("Zoom out")} aria-label={t("Zoom out")} className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(1.25)}>−</button>
           </div>
         </div>}
 
@@ -449,8 +461,8 @@ function CanvasSurface(props: Props) {
             role="status"
           >
             {status === "loading"
-              ? "Loading body…"
-              : "3D is unavailable. You can keep a region without a mark."}
+              ? t("Loading body…")
+              : t("3D is unavailable. You can keep a region without a mark.")}
             {status === "error" && (
               <button
                 className={buttonSecondary}
@@ -459,20 +471,20 @@ function CanvasSurface(props: Props) {
                   setAttempt((a) => a + 1);
                 }}
               >
-                Try again
+                {t("Try again")}
               </button>
             )}
           </div>
         )}
       </div>
-      <div className="space-y-2 print:hidden" aria-label="Body view controls">
+      <div className="space-y-2 print:hidden" aria-label={t("Body view controls")}>
         <div className="flex items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-sm font-semibold">View
-            <select aria-label="Body view" className="min-h-11 rounded-xl bg-panel px-3" value={orientation === "front" || orientation === "back" ? orientation : ""} onChange={e=>api.current?.view(e.target.value)}>
-              <option value="" disabled>Angled view</option><option value="front">Front</option><option value="back">Back</option><option value="left">Left side</option><option value="right">Right side</option>
+          <label className="flex items-center gap-2 text-sm font-semibold">{t("View")}
+            <select aria-label={t("Body view")} className="min-h-11 rounded-xl bg-panel px-3" value={orientation === "front" || orientation === "back" ? orientation : ""} onChange={e=>api.current?.view(e.target.value)}>
+              <option value="" disabled>{t("Angled view")}</option><option value="front">{t("Front")}</option><option value="back">{t("Back")}</option><option value="left">{t("Left side")}</option><option value="right">{t("Right side")}</option>
             </select>
           </label>
-          <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>Reset view</button>
+          <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>{t("Reset view")}</button>
         </div>
       </div>
     </div>
@@ -488,19 +500,19 @@ export default function AnatomyCanvas(props: Props) {
         className="min-h-11 px-1 text-sm font-semibold text-accent underline underline-offset-4 print:hidden"
         onClick={() => setExpanded(true)}
       >
-        Expand view
+        {t("Expand view")}
       </button>
       {expanded ? (
         <Modal
           open
           onClose={() => setExpanded(false)}
-          title={props.reference ? "Right knee bones" : "Body map"}
+          title={props.reference ? t("Right knee bones") : t("Body map")}
           maxWidth={680}
         >
           <>
             {props.reference && (
               <p className="mb-3 text-xs text-muted">
-                Adult male reference · Not aligned to the surface model
+                {t("Adult male reference · Not aligned to the surface model")}
               </p>
             )}
             <CanvasSurface {...props} />

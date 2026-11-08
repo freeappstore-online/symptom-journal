@@ -1,3 +1,4 @@
+import { t, displayLabel } from "./language";
 import { LibrarySelect } from "./LibrarySelect";
 import { useId, useState } from "react";
 import type { Location } from "./store";
@@ -7,13 +8,13 @@ export function SubregionField({value,onChange,compact=false}:{value:Location;on
   const [open,setOpen]=useState(false);
   const id=useId(), parts=subregions[parentRegion(value)];
   if(!parts) return null;
-  const dropdown=<div id={id}><LibrarySelect label="Specific body part" value={value.detail??""} options={[{id:"",label:"Whole region / not sure"},...parts.map(label=>({id:label,label}))]} onChange={detail=>{onChange({...value,detail:detail||undefined});setOpen(false);}}/></div>;
+  const dropdown=<div id={id}><LibrarySelect label={t("Specific body part")} value={value.detail??""} options={[{id:"",label:"Whole region / not sure"},...parts.map(label=>({id:label,label}))]} onChange={detail=>{onChange({...value,detail:detail||undefined});setOpen(false);}}/></div>;
   if(compact) return <div>
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-lg">{specificLocationName(value)}</h2>
-      <button type="button" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(!open)} className="min-h-11 shrink-0 text-xs font-semibold text-accent underline underline-offset-4">Confirm or change</button>
+      <h2 className="text-lg">{displayLabel(specificLocationName(value))}</h2>
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={()=>setOpen(!open)} className="min-h-11 shrink-0 text-xs font-semibold text-accent underline underline-offset-4">{t("Confirm or change")}</button>
     </div>
     {open && dropdown}
   </div>;
-  return <label htmlFor={id} className="block text-sm font-semibold">Confirm or change body part{dropdown}</label>;
+  return <label htmlFor={id} className="block text-sm font-semibold">{t("Confirm or change body part")}{dropdown}</label>;
 }

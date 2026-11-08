@@ -1,3 +1,4 @@
+import { t } from "./language";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@freeappstore/sdk/ui";
 import { stopCameraStream, connectCamera } from "./camera";
@@ -43,24 +44,24 @@ export function CameraCapture({onClose,onCapture,onChooseFile}:{onClose:()=>void
       const file=new File([blob],"entry-photo.jpg",{type:"image/jpeg"});setShot({file,url:URL.createObjectURL(file)});
     }catch{setError("The photo could not be captured. Please try again.");}finally{setCapturing(false);}
   };
-  return <Modal open onClose={onClose} title={shot?"Review photo":"Take a photo"} maxWidth={560}>
+  return <Modal open onClose={onClose} title={shot?t("Review photo"):t("Take a photo")} maxWidth={560}>
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-2xl bg-camera text-camera-ink">
         {shot?<img src={shot.url} alt="Captured photo preview" className="max-h-[55dvh] w-full object-contain"/>:<>
-          <video ref={video} autoPlay playsInline muted aria-label="Live camera preview" className="max-h-[55dvh] min-h-60 w-full object-contain" onCanPlay={()=>setReady(true)}/>
+          <video ref={video} autoPlay playsInline muted aria-label={t("Live camera preview")} className="max-h-[55dvh] min-h-60 w-full object-contain" onCanPlay={()=>setReady(true)}/>
           <svg aria-hidden="true" className="pointer-events-none absolute inset-[15%] h-[70%] w-[70%]" viewBox="0 0 100 100" fill="none"><path d="M0 24V5Q0 0 5 0H24M76 0H95Q100 0 100 5V24M100 76V95Q100 100 95 100H76M24 100H5Q0 100 0 95V76" stroke="currentColor" strokeWidth="1.5"/></svg>
-          {!ready&&!error&&<p role="status" className="absolute inset-0 flex items-center justify-center bg-camera p-4 text-center text-sm">Waiting for camera permission…</p>}
+          {!ready&&!error&&<p role="status" className="absolute inset-0 flex items-center justify-center bg-camera p-4 text-center text-sm">{t("Waiting for camera permission…")}</p>}
         </>}
       </div>
-      {error&&<p role="alert" className="text-sm text-danger">{error}</p>}
-      {shot?<div className="flex justify-between gap-3"><button type="button" className={buttonSecondary} onClick={()=>setShot(null)}>Retake</button><button type="button" className={buttonPrimary} onClick={()=>onCapture(shot.file)}>Use photo</button></div>:<>
-        <p className="text-center text-xs text-muted">Keep the area in the frame. Photos are saved only on this device.</p>
+      {error&&<p role="alert" className="text-sm text-danger">{t(error)}</p>}
+      {shot?<div className="flex justify-between gap-3"><button type="button" className={buttonSecondary} onClick={()=>setShot(null)}>{t("Retake")}</button><button type="button" className={buttonPrimary} onClick={()=>onCapture(shot.file)}>{t("Use photo")}</button></div>:<>
+        <p className="text-center text-xs text-muted">{t("Keep the area in the frame. Photos are saved only on this device.")}</p>
         <div className="flex items-center justify-between gap-3">
-          <button type="button" className="min-h-11 text-sm text-accent underline" onClick={()=>setFacing(f=>f==="environment"?"user":"environment")}>Switch camera</button>
-          <button type="button" aria-label="Capture photo" disabled={!ready||capturing||!!error} className="flex size-16 items-center justify-center rounded-full border-4 border-accent bg-panel text-accent disabled:opacity-40" onClick={()=>void capture()}><Icon name="camera" className="size-7"/></button>
-          <button type="button" className="min-h-11 text-sm text-accent underline" onClick={onChooseFile}>Choose file</button>
+          <button type="button" className="min-h-11 text-sm text-accent underline" onClick={()=>setFacing(f=>f==="environment"?"user":"environment")}>{t("Switch camera")}</button>
+          <button type="button" aria-label={t("Capture photo")} disabled={!ready||capturing||!!error} className="flex size-16 items-center justify-center rounded-full border-4 border-accent bg-panel text-accent disabled:opacity-40" onClick={()=>void capture()}><Icon name="camera" className="size-7"/></button>
+          <button type="button" className="min-h-11 text-sm text-accent underline" onClick={onChooseFile}>{t("Choose file")}</button>
         </div>
-        {error&&<button type="button" className={buttonSecondary} onClick={()=>setAttempt(n=>n+1)}>Retry camera</button>}
+        {error&&<button type="button" className={buttonSecondary} onClick={()=>setAttempt(n=>n+1)}>{t("Retry camera")}</button>}
       </>}
     </div>
   </Modal>;

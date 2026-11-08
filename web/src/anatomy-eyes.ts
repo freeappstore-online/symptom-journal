@@ -1,35 +1,38 @@
-import { Color, Group, Mesh, MeshStandardMaterial, SphereGeometry, Vector3 } from "three";
+import { Group, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 import { digitLandmarks } from "./digit-landmarks";
 
 // The MakeHuman surface has eyelids and empty sockets. The rig supplies the
 // centres, and the existing lids occlude the globes to form the eye openings.
 export function addAnatomyEyes(parent: Group, male: boolean): Mesh[] {
   const rig = digitLandmarks[male ? "male" : "female"];
-  const radius = 0.0108;
+  const radius = male ? 0.0106 : 0.0104;
   const eyes: Mesh[] = [];
   for (const side of ["l", "r"] as const) {
     const [x, y, z] = rig[`${side}-eye`];
-    const eye = new Group();
-    eye.position.set(x, y - (male ? 0.001 : 0.0005), z);
-    const globe = new Mesh(
-      new SphereGeometry(radius, 32, 24),
-      new MeshStandardMaterial({ color: new Color(0xd7e3e7), roughness: 0.43 }),
-    );
-    eye.add(globe);
-    const look = new Vector3(Math.sign(x) * 0.1, 0, 1).normalize();
-    for (const [angle, offset, color] of [
-      [0.36, 0.00006, 0x334853],
-      [0.31, 0.00009, 0x617c85],
-      [0.16, 0.00012, 0x19272d],
-    ]) {
-      const cap = new Mesh(
-        new SphereGeometry(radius + offset, 32, 10, 0, Math.PI * 2, 0, angle),
-        new MeshStandardMaterial({ color: new Color(color), roughness: 0.48 }),
+    // Colour the globe itself. The lids define the opening from every angle.
+    const material = new MeshStandardMaterial({ roughness: 0.64 });
+    material.onBeforeCompile = shader => {
+      shader.vertexShader = "varying vec3 globeDirection;\n" + shader.vertexShader.replace(
+        "#include <begin_vertex>", "#include <begin_vertex>\nglobeDirection = position;",
       );
-      cap.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), look);
-      eye.add(cap);
-    }
-    parent.add(eye);
+      shader.fragmentShader = "varying vec3 globeDirection;\n" + shader.fragmentShader.replace(
+        "#include <color_fragment>", `
+          #include <color_fragment>
+          vec3 gaze = normalize(vec3(0.0, -0.035, 1.0));
+          float distanceToGaze = length(normalize(globeDirection) - gaze);
+          float edge = max(fwidth(distanceToGaze), 0.009);
+          float iris = 1.0 - smoothstep(0.327 - edge, 0.327 + edge, distanceToGaze);
+          float pupil = 1.0 - smoothstep(0.177 - edge, 0.177 + edge, distanceToGaze);
+          vec3 irisColor = mix(vec3(0.094, 0.132, 0.152), vec3(0.136, 0.188, 0.214),
+            1.0 - smoothstep(0.23, 0.327, distanceToGaze));
+          diffuseColor.rgb *= mix(vec3(0.35, 0.46, 0.52), mix(irisColor, vec3(0.048, 0.066, 0.079), pupil), iris);
+        `,
+      );
+    };
+    const globe = new Mesh(new SphereGeometry(radius, 40, 28), material);
+    if (male) globe.scale.y = 0.81;
+    globe.position.set(x, y + (male ? 0.0003 : -0.0005), z - (male ? 0.0021 : 0.00065));
+    parent.add(globe);
     eyes.push(globe);
   }
   return eyes;
