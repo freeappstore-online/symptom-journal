@@ -47,17 +47,17 @@ export function PhotoEditor({value,onChange,onBusy}: {value: EntryPhoto[];onChan
     </div>)}</div>
   </section>;
 }
-export function EntryPhotos({photos}: {photos?:EntryPhoto[]}) {
+export function EntryPhotos({photos, compact = false}: {photos?:EntryPhoto[]; compact?:boolean}) {
   const [selected,setSelected]=useState<EntryPhoto|null>(null);
   if(!photos?.length) return null;
-  return <section className="mt-5 space-y-3" aria-label={t("Patient-provided photos")}>
-    <h3 className="text-base">{t("Patient-provided photos")}</h3>
-    <div className="grid gap-4 sm:grid-cols-2">{photos.map((p,i)=><figure key={p.id} className="break-inside-avoid">
-      <button type="button" className="block w-full rounded-2xl bg-sky-soft p-2 print:hidden" aria-label={t("Enlarge photo {number}", {number:i+1})} onClick={()=>setSelected(p)}>
-        <img src={p.dataUrl} alt={p.caption || t("Patient-provided photo {number}", {number:i+1})} className="mx-auto max-h-72 rounded-xl object-contain"/>
+  return <section className={compact ? "min-w-36 flex-1 space-y-1" : "mt-5 space-y-3"} aria-label={t("Patient-provided photos")}>
+    <h3 className={compact ? "text-xs" : "text-base"}>{t(compact ? "Photos" : "Patient-provided photos")}</h3>
+    <div className={compact ? "flex flex-wrap gap-2" : "grid gap-4 sm:grid-cols-2"}>{photos.map((p,i)=><figure key={p.id} className={compact ? "w-36 max-w-full break-inside-avoid" : "break-inside-avoid"}>
+      <button type="button" className={`block w-full bg-sky-soft print:hidden ${compact ? "rounded-lg p-1" : "rounded-2xl p-2"}`} aria-label={t("Enlarge photo {number}", {number:i+1})} onClick={()=>setSelected(p)}>
+        <img src={p.dataUrl} alt={p.caption || t("Patient-provided photo {number}", {number:i+1})} className={`mx-auto object-contain ${compact ? "max-h-28 rounded-md" : "max-h-72 rounded-xl"}`}/>
       </button>
-      <img src={p.dataUrl} alt={p.caption || t("Patient-provided photo {number}", {number:i+1})} className="mx-auto hidden max-h-72 object-contain print:block"/>
-      {p.caption && <figcaption className="mt-2 break-words text-sm">{p.caption}</figcaption>}
+      <img src={p.dataUrl} alt={p.caption || t("Patient-provided photo {number}", {number:i+1})} className={`mx-auto hidden object-contain print:block ${compact ? "max-h-28" : "max-h-72"}`}/>
+      {p.caption && <figcaption className={`mt-1 break-words ${compact ? "text-xs" : "text-sm"}`}>{p.caption}</figcaption>}
     </figure>)}</div>
     <Modal open={!!selected} onClose={()=>setSelected(null)} title={t("Entry photo")} maxWidth={800}>
       {selected && <figure><img src={selected.dataUrl} alt={selected.caption || t("Patient-provided photo")} className="mx-auto max-h-[75dvh] object-contain"/>{selected.caption && <figcaption className="mt-3 break-words text-sm">{selected.caption}</figcaption>}</figure>}

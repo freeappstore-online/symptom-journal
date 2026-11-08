@@ -245,6 +245,7 @@ export function AnatomySketch({
   onStageChange,
   readOnly = false,
   showLabel = true,
+  compact = false,
 }: {
   value: Location;
   onChange?: (l: Location) => void;
@@ -253,6 +254,7 @@ export function AnatomySketch({
   onStageChange?: (s: "area" | "spot") => void;
   readOnly?: boolean;
   showLabel?: boolean;
+  compact?: boolean;
 }) {
   const [history, setHistory] = useState<Location[]>([]);
   const [reference, setReference] = useState(false);
@@ -285,6 +287,7 @@ export function AnatomySketch({
         focus={s.focus}
         surface={s}
         readOnly={readOnly}
+        compact={compact}
         onPick={(a) => change(setSurfaceMark(value, target, a))}
       />
       {showLabel && <p className="text-sm font-semibold">{displayLabel(locationLabel(value))}</p>}
@@ -337,7 +340,7 @@ export function AnatomySketch({
             onSkip={() => { const l=setSurfaceMark(value,target); onChange?.(l); next(l); }} />
         </>
       )}
-      {s.regionId.endsWith("knee") && (
+      {!compact && s.regionId.endsWith("knee") && (
         <div className="rounded-3xl bg-panel p-4 print:hidden">
           <button
             className="min-h-11 text-sm font-bold underline"

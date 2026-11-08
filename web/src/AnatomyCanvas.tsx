@@ -41,6 +41,7 @@ type Props = {
   onPick?: (anchor: Anchor) => void;
   focus?: Anchor;
   readOnly?: boolean;
+  compact?: boolean;
   reference?: boolean;
 };
 function CanvasSurface(props: Props) {
@@ -81,7 +82,9 @@ function CanvasSurface(props: Props) {
     renderer.domElement.className = "block h-full w-full touch-none";
     renderer.domElement.setAttribute(
       "aria-label",
-      props.reference
+      props.compact
+        ? t("Body map")
+        : props.reference
         ? t("Rotatable right-knee bone reference")
         : t(modelId === MALE_MODEL_ID ? "Rotatable adult male body. Use the region list if you cannot use the model." : "Rotatable adult female body. Use the region list if you cannot use the model."),
     );
@@ -95,7 +98,8 @@ function CanvasSurface(props: Props) {
     controls.enableZoom = true;
     controls.touches.ONE = THREE.TOUCH.PAN;
     controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
-    renderer.domElement.style.touchAction = "none";
+    controls.enabled = !props.compact;
+    renderer.domElement.style.touchAction = props.compact ? "auto" : "none";
     controls.rotateSpeed = 0.65;
     controls.minDistance = 0.045;
     controls.maxDistance = 2.8;
@@ -431,7 +435,7 @@ function CanvasSurface(props: Props) {
       renderer.domElement.removeEventListener("pointercancel", cancel);
       renderer.domElement.remove();
     };
-  }, [attempt, props.reference, modelId]);
+  }, [attempt, props.reference, props.compact, modelId]);
   useEffect(() => { api.current?.paint(); }, [props.surface, props.historyMarks, props.heatMetric]);
   useEffect(() => { api.current?.view("reset"); }, [props.focus]);
   return (
@@ -440,11 +444,11 @@ function CanvasSurface(props: Props) {
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
-          className={`${props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
+          className={`${props.compact ? "h-32" : props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
-        {status === "ready" && !props.reference && <BodyOrientation view={orientation} />}
-        <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>
-        {status === "ready" && <div role="group" aria-label={t("Move and zoom body map")} className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
+        {status === "ready" && !props.reference && !props.compact && <BodyOrientation view={orientation} />}
+        {!props.compact && <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={()=>setHelp(true)}>?</button>}
+        {status === "ready" && !props.compact && <div role="group" aria-label={t("Move and zoom body map")} className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
             <button type="button" title={t("Move view up")} aria-label={t("Move view up")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
             <button type="button" title={t("Move view down")} aria-label={t("Move view down")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(-1)}>↓</button>
@@ -477,7 +481,7 @@ function CanvasSurface(props: Props) {
           </div>
         )}
       </div>
-      <div className="space-y-2 print:hidden" aria-label={t("Body view controls")}>
+      {!props.compact && <div className="space-y-2 print:hidden" aria-label={t("Body view controls")}>
         <div className="flex items-center justify-between gap-2">
           <label className="flex items-center gap-2 text-sm font-semibold">{t("View")}
             <select aria-label={t("Body view")} className="min-h-11 rounded-xl bg-panel px-3" value={orientation === "front" || orientation === "back" ? orientation : ""} onChange={e=>api.current?.view(e.target.value)}>
@@ -486,13 +490,14 @@ function CanvasSurface(props: Props) {
           </label>
           <button type="button" className="min-h-11 px-3 text-sm font-semibold text-accent" onClick={()=>api.current?.view("reset")}>{t("Reset view")}</button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
 
 export default function AnatomyCanvas(props: Props) {
   const [expanded, setExpanded] = useState(false);
+  if (props.compact) return <CanvasSurface {...props} />;
   return (
     <>
       <button

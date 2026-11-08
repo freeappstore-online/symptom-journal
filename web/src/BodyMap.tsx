@@ -178,6 +178,7 @@ function LegacyLocationSketch({
   readOnly = false,
   showVisual = true,
   showLabel = true,
+  compact = false,
 }: {
   value: Location;
   onChange?: (l: Location) => void;
@@ -187,6 +188,7 @@ function LegacyLocationSketch({
   readOnly?: boolean;
   showVisual?: boolean;
   showLabel?: boolean;
+  compact?: boolean;
 }) {
   const [internalStage, setStage] = useState<"area" | "spot">("area");
   const stage = controlledStage ?? internalStage;
@@ -276,7 +278,7 @@ function LegacyLocationSketch({
         aria-label={`${displayLabel(value.region)}, ${t(value.view === "front" ? "Front" : "Back")}, ${t(readOnly ? modeLabel : stage === "area" ? "Mark a wider area" : "Pain point")}`}
         aria-describedby={readOnly ? undefined : hint}
         tabIndex={readOnly ? undefined : 0}
-        className={`w-full rounded-[1.75rem] bg-paper-deep ${readOnly ? "max-h-48" : "max-h-80 cursor-crosshair touch-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"}`}
+        className={`w-full rounded-[1.75rem] bg-paper-deep ${readOnly ? compact ? "max-h-32" : "max-h-48" : "max-h-80 cursor-crosshair touch-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"}`}
         onKeyDown={
           readOnly
             ? undefined

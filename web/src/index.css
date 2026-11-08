@@ -258,6 +258,7 @@
   header,
   footer,
   nav,
+  .fas-skip-link,
   [role="dialog"] {
     display: none !important;
   }
@@ -275,6 +276,14 @@
   .fas-main > div:has(.symptom-report) {
     max-width: none;
     padding: 0 !important;
+  }
+  html:has(.symptom-report) {
+    background: #fff !important;
+  }
+  body:has(.symptom-report),
+  #root:has(.symptom-report),
+  div:has(> .fas-main .symptom-report) {
+    min-height: 0;
   }
   .symptom-report {
     color: var(--ink-strong);
