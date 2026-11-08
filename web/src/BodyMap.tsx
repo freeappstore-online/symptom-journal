@@ -176,6 +176,7 @@ function LegacyLocationSketch({
   onStageChange,
   readOnly = false,
   showVisual = true,
+  showLabel = true,
 }: {
   value: Location;
   onChange?: (l: Location) => void;
@@ -184,6 +185,7 @@ function LegacyLocationSketch({
   onStageChange?: (stage: "area" | "spot") => void;
   readOnly?: boolean;
   showVisual?: boolean;
+  showLabel?: boolean;
 }) {
   const [internalStage, setStage] = useState<"area" | "spot">("area");
   const stage = controlledStage ?? internalStage;
@@ -266,7 +268,7 @@ function LegacyLocationSketch({
           </p>
         </div>
       )}
-      <p className="text-xs text-muted">{value.region} · {value.view === "front" ? "Front" : "Back"} · Patient’s perspective</p>
+      {showLabel && <p className="text-xs text-muted">{value.region} · {value.view === "front" ? "Front" : "Back"} · Patient’s perspective</p>}
       <svg
         viewBox="0 0 100 100"
         role="img"

@@ -19,6 +19,8 @@ import {
 import type { Location } from "./store";
 import { buttonPrimary, buttonSecondary, inputClass, StepActions } from "./ui";
 const Canvas = lazy(() => import("./AnatomyCanvas"));
+const guideStorageKey = "symptom-map:body-map-guide:v1";
+let guideSeenThisSession = false;
 function Viewer(props: React.ComponentProps<typeof Canvas>) {
   return (
     <Suspense
@@ -127,7 +129,22 @@ export function AnatomyPicker({
   skipLabel: string;
 }) {
   const [selected, setSelected] = useState<Location | null>(initialValue?.surface3d?.model===model ? initialValue : null);
-  const [showHelp,setShowHelp] = useState(true);
+  const [showHelp,setShowHelp] = useState(() => {
+    try {
+      return !guideSeenThisSession && localStorage.getItem(guideStorageKey) !== "seen";
+    } catch {
+      return !guideSeenThisSession;
+    }
+  });
+  function dismissGuide() {
+    guideSeenThisSession = true;
+    setShowHelp(false);
+    try {
+      localStorage.setItem(guideStorageKey, "seen");
+    } catch {
+      // Keep the session preference when browser storage is unavailable.
+    }
+  }
   const [markMode,setMarkMode] = useState<"region"|"area"|"point">("region");
   const [guide,setGuide] = useState<"idle"|"ask-area"|"area"|"ask-point"|"point"|"done">(initialValue ? "done" : "idle");
   const promptButton = useRef<HTMLButtonElement>(null);
@@ -147,12 +164,12 @@ export function AnatomyPicker({
   }
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3"><p className="text-sm text-muted">Tap a body part, or choose its name.</p><button type="button" className="min-h-11 shrink-0 text-sm font-bold text-accent underline" onClick={()=>setShowHelp(true)}>How to move</button></div>
-      <Modal open={showHelp} onClose={()=>setShowHelp(false)} title="Explore the body map" maxWidth={420}>
+      <p className="text-sm text-muted">Tap a body part, or choose its name.</p>
+      <Modal open={showHelp} onClose={dismissGuide} title="Explore the body map" maxWidth={420}>
         <div className="space-y-4">
           <GestureGuide/>
           <p className="text-xs text-muted">Scroll outside the map.</p>
-          <button type="button" className={`${buttonPrimary} w-full`} onClick={()=>setShowHelp(false)}>Start mapping</button>
+          <button type="button" className={`${buttonPrimary} w-full`} onClick={dismissGuide}>Start mapping</button>
         </div>
       </Modal>
       <div className="relative">
@@ -227,6 +244,7 @@ export function AnatomySketch({
   stage = "area",
   onStageChange,
   readOnly = false,
+  showLabel = true,
 }: {
   value: Location;
   onChange?: (l: Location) => void;
@@ -234,6 +252,7 @@ export function AnatomySketch({
   stage?: "area" | "spot";
   onStageChange?: (s: "area" | "spot") => void;
   readOnly?: boolean;
+  showLabel?: boolean;
 }) {
   const [history, setHistory] = useState<Location[]>([]);
   const [reference, setReference] = useState(false);
@@ -268,7 +287,7 @@ export function AnatomySketch({
         readOnly={readOnly}
         onPick={(a) => change(setSurfaceMark(value, target, a))}
       />
-      <p className="text-sm font-semibold">{locationLabel(value)}</p>
+      {showLabel && <p className="text-sm font-semibold">{locationLabel(value)}</p>}
       {!readOnly && (
         <>
           <div className="flex flex-wrap gap-3">
@@ -319,7 +338,7 @@ export function AnatomySketch({
         </>
       )}
       {s.regionId.endsWith("knee") && (
-        <div className="rounded-3xl bg-panel p-4">
+        <div className="rounded-3xl bg-panel p-4 print:hidden">
           <button
             className="min-h-11 text-sm font-bold underline"
             aria-expanded={reference}

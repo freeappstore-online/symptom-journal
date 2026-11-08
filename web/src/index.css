@@ -271,6 +271,16 @@
   body {
     background: var(--paper);
   }
+  .fas-main:has(.symptom-report),
+  .fas-main > div:has(.symptom-report) {
+    max-width: none;
+    padding: 0 !important;
+  }
+  .symptom-report {
+    color: var(--ink-strong);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   svg {
     break-inside: avoid;
   }

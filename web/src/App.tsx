@@ -186,12 +186,14 @@ export default function App() {
       return false;
     }
   };
-  const saveCustom=(name:string,scope:string)=>{
+  const saveCustom=(names:string[],scope:string)=>{
     if(!profile)return;
     const old=diary.customSymptoms??[];
-    if(old.some(c=>c.profileId===profile.id && c.scope===scope && c.name.toLowerCase()===name.toLowerCase()))return;
-    if(old.length>=500){setError("Your library is full (500 items). The symptom can still be recorded.");return;}
-    if(commit({...diary,customSymptoms:[...old,{profileId:profile.id,name,scope}]}))setNotice("Saved to your symptom library.");
+    const additions=names.filter(name=>!old.some(c=>c.profileId===profile.id && c.scope===scope && c.name.toLowerCase()===name.toLowerCase()));
+    if(!additions.length)return;
+    if(old.length+additions.length>500){setError("Your library is full. You can still record these symptoms.");return;}
+    const customSymptoms=[...old,...additions.map(name=>({profileId:profile.id,name,scope}))];
+    if(commit({...diary,customSymptoms}))setNotice("Saved to your symptom library.");
   };
   const navigate = (href: string) => {
     window.history.pushState(null, "", href);
@@ -450,7 +452,7 @@ export default function App() {
                   ready={entrySymptoms(draft ?? (entryId?entry:undefined)).length>0}
                   selection={l=><LocationObservation location={l} value={entrySymptoms(draft ?? (entryId?entry:undefined))}
                     custom={(diary.customSymptoms??[]).filter(c=>c.profileId===profile.id && c.scope===libraryScope(l,"body")).map(c=>c.name)}
-                    onSaveCustom={name=>saveCustom(name,libraryScope(l,"body"))}
+                    onSaveCustom={names=>saveCustom(names,libraryScope(l,"body"))}
                     onChange={symptoms=>setDraft(old=>({...old,kind:"symptom",symptoms:symptoms.length?symptoms:undefined,symptom:symptoms[0]?.name??"",severity:symptoms[0]?.severity??5,occurredAt:old?.occurredAt??entry?.occurredAt??new Date().toISOString(),duration:old?.duration??entry?.duration??"",notes:old?.notes??entry?.notes??"",photos:old?.photos??entry?.photos}))}/>}
                   onSkip={() => start("physical")}
                   showVisual={profileModel(profile) !== null}
@@ -468,7 +470,7 @@ export default function App() {
                 location={location}
                 category={category}
                 custom={(diary.customSymptoms??[]).filter(c=>c.profileId===profile.id && c.scope===libraryScope(location,category)).map(c=>c.name)}
-                onSaveCustom={name=>saveCustom(name,libraryScope(location,category))}
+                onSaveCustom={names=>saveCustom(names,libraryScope(location,category))}
                 feelings={feelings}
                 onBack={(values) => {
                   setDraft(values);
@@ -641,65 +643,53 @@ export default function App() {
               ))}
             {step === "report" && profile && (
               <>
-                <div className="print:hidden">
-                  <button className={primary} onClick={() => window.print()}>
-                    Print / save as PDF
-                  </button>
-                  <p className="mt-3 text-sm text-muted">
-                    Includes {historyPart?`${historyPart} entries`:"all entries"} for {profile.name}. Review before
-                    sharing.
-                  </p>
-                </div>
-                <article className="space-y-5 rounded-[1.75rem] bg-panel p-5 print:border-0 print:p-0">
-                  <h2 className="text-2xl font-bold">
-                    Symptom Journal · symptom diary
-                  </h2>
-                  <p>{profile.name} · Self-reported observations</p>
-                  <p className="text-sm">
-                    This record does not provide a diagnosis or medical
-                    interpretation.
-                  </p>
-                  <p className="text-xs text-muted">Left and right refer to the patient’s own body.</p>
-                  {historyEntries.map((e) => (
-                    <section
-                      key={e.id}
-                      className="break-inside-avoid border-t border-line pt-4"
-                    >
-                      <h2 className="font-bold">
-                        {entryTitle(e)}
-                        {e.kind !== "general" && !e.temperature && !e.symptoms && ` · ${e.severity}/10`}
-                      </h2>
-                      {!!e.symptoms?.length && <p className="text-sm">{e.symptoms.map(s=>`${s.name}: ${s.severity}/10`).join(" · ")}</p>}
-                      {e.temperature && <p>{e.temperature.celsius.toFixed(1)} °C · {e.temperature.method}</p>}
-                      <p className="text-sm">
-                        {when(e.occurredAt)} ·{" "}
-                        {e.location
-                          ? locationLabel(e.location)
-                          : "No specific location"}{" "}
-                        · {e.duration || "Duration not recorded"}
-                      </p>
-                      {e.location && (
-                        <LocationSketch
-                          value={e.location}
-                          readOnly
-                          showVisual={
-                            e.location.illustration === "adult-female" ||
-                            e.location.illustration === "adult-male"
-                          }
-                        />
-                      )}
-                      {!!e.feelings?.length && (
-                        <FeelingsSummary
-                          value={e.feelings}
-                          heading={e.kind !== "general"}
-                        />
+                <button className={`${primary} print:hidden`} onClick={() => window.print()}>
+                  Print or save PDF
+                </button>
+                <article className="symptom-report mt-4 space-y-5 rounded-[1.75rem] bg-panel p-5 print:mt-0 print:p-0">
+                  <div className="break-inside-avoid space-y-1">
+                    <h2 className="text-2xl font-bold">Symptom report</h2>
+                    <p className="break-words font-semibold">{profile.name}</p>
+                    <p className="text-sm text-muted">
+                      {historyEntries.length} {historyEntries.length === 1 ? "entry" : "entries"}
+                      {historyPart && ` · ${historyPart}`}
+                    </p>
+                    {historyEntries.some(e=>e.location) && <p className="text-sm text-muted">Left and right refer to the patient’s own body.</p>}
+                  </div>
+                  {historyEntries.map(e => {
+                    const symptoms = entrySymptoms(e);
+                    const heading = e.location ? locationLabel(e.location) : e.temperature ? "Temperature" : e.category === "mental" ? "Mood" : "General symptoms";
+                    return <section key={e.id} className="space-y-3 border-t border-line pt-4">
+                      <div className="break-inside-avoid space-y-2">
+                        <time className="block text-sm text-muted" dateTime={e.occurredAt}>{when(e.occurredAt)}</time>
+                        <h3 className="text-lg font-bold">{heading}</h3>
+                        {!!symptoms.length && <ul className="divide-y divide-line text-sm" aria-label="Symptom severity">
+                          {symptoms.map((symptom,i) => <li key={i} className="flex justify-between gap-3 py-1.5">
+                            <span className="min-w-0 break-words">{symptom.name}</span>
+                            <span className="shrink-0 tabular-nums" aria-label={`Severity ${symptom.severity} out of 10`}>{symptom.severity}/10</span>
+                          </li>)}
+                        </ul>}
+                        {e.temperature && <p className="text-sm"><strong>{e.temperature.celsius.toFixed(1)} °C</strong>{e.temperature.method && ` · ${e.temperature.method}`}</p>}
+                        {e.duration && <p className="text-sm">Duration {e.duration}</p>}
+                      </div>
+                      {!!e.feelings?.length && <ul className="divide-y divide-line text-sm" aria-label="Other symptoms and mood">
+                        {e.feelings.map((feeling,i) => <li key={i} className="break-inside-avoid py-1.5">
+                          <div className="flex justify-between gap-3">
+                            <span className="min-w-0 break-words">{feeling.name}{feeling.kind === "mood" && <span className="text-muted"> · Mood</span>}</span>
+                            <span className="shrink-0 tabular-nums" aria-label={`Intensity ${feeling.intensity} out of 10`}>{feeling.intensity}/10</span>
+                          </div>
+                          {feeling.notes && <p className="mt-1 whitespace-pre-wrap break-words">{feeling.notes}</p>}
+                        </li>)}
+                      </ul>}
+                      {e.notes && <p className="whitespace-pre-wrap break-words text-sm"><strong className="block">Notes</strong>{e.notes}</p>}
+                      {e.location && (e.location.surface3d || (e.location.illustration && e.location.illustration !== "none")) && (
+                        <div className="max-w-sm break-inside-avoid">
+                          <LocationSketch value={e.location} readOnly showLabel={false}/>
+                        </div>
                       )}
                       <EntryPhotos photos={e.photos} />
-                      <p className="mt-2 whitespace-pre-wrap break-words">
-                        {e.notes}
-                      </p>
-                    </section>
-                  ))}
+                    </section>;
+                  })}
                 </article>
                 <button
                   className={`${secondary} print:hidden`}
@@ -992,7 +982,7 @@ function ProfileForm({
   );
 }
 function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,custom,onSaveCustom}: {
- entry?:Omit<Entry,"id"|"profileId"|"location">;location:Location|null;category:LogCategory;custom:string[];onSaveCustom:(name:string)=>void;
+ entry?:Omit<Entry,"id"|"profileId"|"location">;location:Location|null;category:LogCategory;custom:string[];onSaveCustom:(names:string[])=>void;
  onSave:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onLocation:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onBack:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;
  feelings:GeneralFeeling[];
 }) {
