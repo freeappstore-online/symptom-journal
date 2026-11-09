@@ -4,9 +4,10 @@ import { locationLabel } from "./anatomy";
 import { LocationSketch } from "./BodyMap";
 import { EntryPhotos } from "./EntryPhotos";
 import { entrySymptoms } from "./logging";
+import { ReportCharts } from "./ReportCharts";
 import { LibrarySelect } from "./LibrarySelect";
 import { Icon, buttonPrimary, inputClass } from "./ui";
-import { reportBounds, reportEntries, reportOptions, type ReportRange } from "./report";
+import { reportBounds, reportEntries, reportOptions, type ReportBounds, type ReportRange } from "./report";
 import type { Entry } from "./store";
 
 export function ReportPage({ entries, profileName }: { entries: Entry[]; profileName: string }) {
@@ -14,6 +15,7 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
   const [range, setRange] = useState<ReportRange>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
+  const [includeCharts, setIncludeCharts] = useState(false);
   const [preview, setPreview] = useState(false);
   const options = reportOptions(entries);
   const bounds = reportBounds(range, from, through);
@@ -39,7 +41,7 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
           <Icon name="report" /> {t("Print or save PDF")}
         </button>
       </div>
-      <ReportDocument entries={matching} profileName={profileName} selection={selection} />
+      <ReportDocument entries={matching} profileName={profileName} selection={selection} bounds={bounds} includeCharts={includeCharts} />
     </>;
   }
 
@@ -67,6 +69,10 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
         <input type="date" className={inputClass} value={through} onChange={event => setThrough(event.target.value)} />
       </label>
     </div>}
+    <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+      <input type="checkbox" className="size-5 accent-accent" checked={includeCharts} onChange={event => setIncludeCharts(event.target.checked)} />
+      {t("Include summary charts")}
+    </label>
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
       <p className="text-sm text-muted" role="status">
         {!bounds ? t(from && through ? "End date must be on or after the start date." : "Choose a start and end date.") :
@@ -79,7 +85,9 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
   </section>;
 }
 
-function ReportDocument({ entries, profileName, selection }: { entries: Entry[]; profileName: string; selection: string }) {
+function ReportDocument({ entries, profileName, selection, bounds, includeCharts }: {
+  entries: Entry[]; profileName: string; selection: string; bounds: ReportBounds | null; includeCharts: boolean;
+}) {
   const locale = formatLocale();
   const days = new Map<string, Entry[]>();
   for (const entry of entries) {
@@ -97,7 +105,11 @@ function ReportDocument({ entries, profileName, selection }: { entries: Entry[];
           <p className="text-sm text-muted">{entries.length} {t(entries.length === 1 ? "entry" : "entries")}</p>
         </div>
         <p className="mt-1 break-words text-sm text-muted">{selection}</p>
+        {entries.some(entry => entry.location) && (
+          <p className="mt-1 text-xs text-muted">{t("Left and right refer to the patient’s own body.")}</p>
+        )}
       </div>
+      {includeCharts && <ReportCharts entries={entries} bounds={bounds} />}
       {[...days].map(([day, logs]) => (
         <section className="mt-5" key={day}>
           <table className="w-full table-fixed">
@@ -112,15 +124,12 @@ function ReportDocument({ entries, profileName, selection }: { entries: Entry[];
             </thead>
             <tbody className="divide-y divide-line">
               {logs.map(entry => (
-                <tr key={entry.id}><td><ReportEntry entry={entry} /></td></tr>
+                <tr key={entry.id} className="print:break-inside-avoid"><td><ReportEntry entry={entry} /></td></tr>
               ))}
             </tbody>
           </table>
         </section>
       ))}
-      {entries.some(entry => entry.location) && (
-        <p className="mt-4 text-xs text-muted">{t("Left and right refer to the patient’s own body.")}</p>
-      )}
     </article>
   );
 }

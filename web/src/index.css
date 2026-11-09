@@ -264,6 +264,7 @@
   }
   :root,
   :root[data-theme="dark"] {
+    --accent: #006875;
     --pain: #b84d3d;
     --pain-soft: #fbe7e1;
     --anatomy: #d6e3eb;
@@ -284,6 +285,13 @@
   #root:has(.symptom-report),
   div:has(> .fas-main .symptom-report) {
     min-height: 0;
+  }
+  div:has(> .fas-main .symptom-report),
+  .fas-main:has(.symptom-report) {
+    display: block;
+  }
+  div:has(> .symptom-report) {
+    margin-top: 0;
   }
   .symptom-report {
     color: var(--ink-strong);

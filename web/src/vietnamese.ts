@@ -844,4 +844,7 @@ export const vietnamese: Readonly<Record<string, string>> = {
   "Preview report": "Xem trước báo cáo",
   "Edit filters": "Sửa bộ lọc",
   "Matching entries include their notes and photos.": "Báo cáo gồm cả ghi chú và ảnh của các ghi chép phù hợp.",
+  "Every {days} days": "Mỗi {days} ngày",
+  "Summary charts": "Biểu đồ tổng hợp",
+  "Include summary charts": "Thêm biểu đồ tổng hợp",
 };
