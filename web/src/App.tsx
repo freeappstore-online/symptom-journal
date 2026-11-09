@@ -60,12 +60,12 @@ import {
 const NAV: NavItem[] = [
   { label: "Home", href: "/", title: "Home — Symptom Journal" },
   { label: "Summary", href: "/history", title: "Summary — Symptom Journal" },
+  { label: "Report", href: "/report", title: "Report — Symptom Journal" },
   {
-    label: "Backup & privacy",
+    label: "Settings",
     href: "/settings",
     title: "Backup — Symptom Journal",
   },
-  { label: "Report", href: "/report", title: "Report — Symptom Journal" },
 ];
 const input = inputClass;
 const primary = buttonPrimary;
@@ -269,7 +269,7 @@ export default function App() {
   return (
     <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[data-journal-nav]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
       <Shell app={fas} appName="Symptom Journal" nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
-          {items.map((item,i)=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={i===0?"home":i===1?"chart":i===2?"settings":"report"}/><span>{i===2?t("Settings"):item.label}</span></a>)}
+          {items.map(item=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={item.href === "/" ? "home" : item.href === "/history" ? "chart" : item.href === "/report" ? "report" : "settings"}/><span>{item.label}</span></a>)}
         </nav>}>
         <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
