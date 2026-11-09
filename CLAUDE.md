@@ -1,12 +1,12 @@
-# SymptomMap
+# Symptom Journal
 
 A mobile-first personal symptom diary, with adult female and male surface body mapping.
 
-- App ID: `symptom-map` (provisional; not provisioned)
+- App ID: `symptom-journal`
 - Dev: `corepack pnpm install && corepack pnpm dev`
 - Validate: `corepack pnpm typecheck && corepack pnpm test`
 
-Free, MIT-licensed. Read the platform [SKILLS.md](https://freeappstore.online/skills.md) before changes.
+Free, MIT-licensed. Read the platform [SKILLS.md](https://freeappstore.online/skills.md) before changes. See the [starter contract](https://github.com/freeappstore-online/platform/blob/main/docs/composable-starter-contract.md) for shared conventions.
 
 ## Project-specific decisions
 

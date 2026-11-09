@@ -1,5 +1,5 @@
 {
-  "appId": "symptom-map",
+  "appId": "symptom-journal",
   "applicationRoot": "web",
   "outputPath": "web/dist",
   "buildCommand": "pnpm build"

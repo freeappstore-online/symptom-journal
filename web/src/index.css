@@ -279,7 +279,7 @@
     padding: 0 !important;
   }
   html:has(.symptom-report) {
-    background: #fff !important;
+    background: var(--paper) !important;
   }
   body:has(.symptom-report),
   #root:has(.symptom-report),
