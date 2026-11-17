@@ -1,3 +1,4 @@
+import { dateOffset, PeriodDays, SleepTimeline } from "./EntryTimeline";
 import { Droplet } from "lucide-react";
 import { t, displayLabel, formatLocale, language, matchesLabel, setLanguage } from "./language";
 import { ReportPage } from "./ReportPage";
@@ -575,6 +576,8 @@ export default function App() {
               <RecordForm
                 key={entryId ?? "new"}
                 entry={draft ?? (entryId ? entry : undefined)}
+                relatedEntries={entries}
+                onOpenEntry={openEntry}
                 location={location}
                 category={category}
                 custom={(diary.customSymptoms??[]).filter(c=>c.profileId===profile.id && c.scope===libraryScope(location,category)).map(c=>c.name)}
@@ -1079,7 +1082,8 @@ function asLocalInput(timestamp: string) {
 
 const physicalQuickPick = ["Fatigue", "Nausea", "Dizziness", "Chills", "Feeling unwell", "Trouble sleeping"];
 
-function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,custom,onSaveCustom}: {
+function RecordForm({entry,relatedEntries,onOpenEntry,location,onSave,onLocation,onBack,feelings,category,custom,onSaveCustom}: {
+ relatedEntries:Entry[];onOpenEntry:(entry:Entry)=>void;
  entry?:Omit<Entry,"id"|"profileId"|"location">;location:Location|null;category:LogCategory;custom:string[];onSaveCustom:(names:string[])=>void;
  onSave:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onLocation:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onBack:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;
  feelings:GeneralFeeling[];
@@ -1089,7 +1093,10 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
  const [duration,setDuration]=useState(entry?.duration??""),[notes,setNotes]=useState(entry?.notes??""),[photos,setPhotos]=useState(entry?.photos??[]),[busy,setBusy]=useState(false);
  const [temperature,setTemperature]=useState(entry?.temperature?.celsius.toString()??""),[unit,setUnit]=useState("C"),[method,setMethod]=useState(entry?.temperature?.method??"");
  const [bedtime, setBedtime] = useState(entry?.sleep ? asLocalInput(entry.sleep.bedtime) : "");
- const validSleep = Number.isFinite(Date.parse(bedtime)) && Date.parse(bedtime) < Date.parse(occurredAt);
+ const existingPeriod = category === "period" ? relatedEntries.find(item =>
+   item.period && asLocalInput(item.occurredAt).slice(0, 10) === occurredAt.slice(0, 10),
+ ) : undefined;
+ const validSleep = occurredAt.includes("T") && Number.isFinite(Date.parse(bedtime)) && Date.parse(bedtime) < Date.parse(occurredAt);
  const celsius=unit==="C"?Number(temperature):(Number(temperature)-32)*5/9;
  const valid=category==="temperature" ? temperature!=="" && celsius>=30 && celsius<=45
    : category === "sleep" ? validSleep : isReadingCategory(category) || symptoms.length>0 || feelings.length>0;
@@ -1160,6 +1167,9 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
        </fieldset>
      </div>
    ) : category === "period" ? (
+     <>
+     <PeriodDays selected={occurredAt.slice(0, 10)} logged={new Set(relatedEntries.filter(item => item.period).map(item => asLocalInput(item.occurredAt).slice(0, 10)))} onSelect={day => setOccurredAt(previous => day + previous.slice(10))} />
+     {!entry && existingPeriod && <button type="button" className={secondary} onClick={() => onOpenEntry(existingPeriod)}>{t("Open logged period entry")}</button>}
      <fieldset className="rounded-3xl bg-panel p-4">
        <legend className="px-1 text-sm font-semibold">{t("Period flow")}</legend>
        <div className="grid grid-cols-2 gap-2">
@@ -1178,10 +1188,43 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
          ))}
        </div>
      </fieldset>
+     </>
    ) : category === "sleep" ? (
      <div className="space-y-4 rounded-3xl bg-panel p-4">
-       <Field label={t("Went to bed")}><input className={input} type="datetime-local" required value={bedtime} onChange={event => setBedtime(event.target.value)} /></Field>
-       <Field label={t("Woke up")}><input className={input} type="datetime-local" required value={occurredAt} onChange={event => setOccurredAt(event.target.value)} /></Field>
+       <SleepTimeline bed={bedtime} wake={occurredAt} />
+       <Field label={t("Wake date")}><input className={input} type="date" required value={occurredAt.slice(0, 10)} onChange={event => {
+         const date = event.target.value;
+         if (!date) return;
+         const previous = occurredAt.slice(0, 10);
+         if (bedtime) {
+           const shift = Math.round((Date.parse(date) - Date.parse(previous)) / 86_400_000);
+           setBedtime(dateOffset(bedtime.slice(0, 10), shift) + bedtime.slice(10));
+         }
+         setOccurredAt(date + occurredAt.slice(10));
+       }} /></Field>
+       <div className="grid grid-cols-2 gap-3">
+         <Field label={t("Went to bed")}><input className={input} type="time" required value={bedtime.slice(11)} onChange={event => {
+           const time = event.target.value;
+           const wakeDay = occurredAt.slice(0, 10);
+           const day = time > occurredAt.slice(11) ? dateOffset(wakeDay, -1) : wakeDay;
+           setBedtime(time ? day + "T" + time : "");
+         }} /></Field>
+         <Field label={t("Woke up")}><input className={input} type="time" required value={occurredAt.slice(11)} onChange={event => {
+           const time = event.target.value;
+           const wakeDay = occurredAt.slice(0, 10);
+           setOccurredAt(wakeDay + (time ? "T" + time : ""));
+           if (bedtime && time) {
+             const bedTime = bedtime.slice(11);
+             setBedtime((bedTime > time ? dateOffset(wakeDay, -1) : wakeDay) + "T" + bedTime);
+           }
+         }} /></Field>
+       </div>
+       {bedtime && <details>
+         <summary className="min-h-11 cursor-pointer py-3 text-sm text-accent">{t("Bedtime date")} · {new Date(bedtime).toLocaleDateString(formatLocale(), { dateStyle: "medium" })}</summary>
+         <Field label={t("Bedtime date")}><input className={input} type="date" required value={bedtime.slice(0, 10)} onChange={event => {
+           if (event.target.value) setBedtime(event.target.value + bedtime.slice(10));
+         }} /></Field>
+       </details>}
        {bedtime && occurredAt && !validSleep && <p role="status" className="text-sm text-danger">{t("Wake time must be after bedtime.")}</p>}
        <Field label={t("Sleep quality (optional)")}>
          <select name="sleepQuality" className={input} defaultValue={entry?.sleep?.quality ?? ""}>
@@ -1192,14 +1235,7 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
      </div>
    ) : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} quickPick={category==="mental" ? moodQuickPick : physicalQuickPick} mood={category==="mental"} custom={custom} onSaveCustom={onSaveCustom}/>}
    {!!feelings.length && <FeelingsSummary value={feelings}/>}
-   {category === "sleep" ? null : category === "period" ? (
-     <Field label={t("Date")}>
-       <input className={input} type="date" required value={occurredAt.slice(0, 10)} onChange={event => {
-         const date = event.target.value;
-         setOccurredAt(previous => date ? date + (previous.slice(10) || "T12:00") : "");
-       }} />
-     </Field>
-   ) : (
+   {category !== "sleep" && category !== "period" && (
      <Field label={t("When")}><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
    )}
    {!isReadingCategory(category) && <Field label={t("Duration (optional)")}><input className={input} maxLength={80} placeholder={t("e.g. 45 minutes")} value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
