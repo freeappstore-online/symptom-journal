@@ -9,6 +9,10 @@ export function readingValue(e: Entry): string {
   if (e.temperature) return `${e.temperature.celsius.toFixed(1)} °C`;
   if (e.bloodPressure) return `${e.bloodPressure.systolic}/${e.bloodPressure.diastolic} mmHg`;
   if (e.bloodGlucose) return `${e.bloodGlucose.value} ${e.bloodGlucose.unit}`;
+  if (e.sleep) {
+    const minutes = Math.round((Date.parse(e.occurredAt) - Date.parse(e.sleep.bedtime)) / 60_000);
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  }
   return e.period?.flow ?? "";
 }
 

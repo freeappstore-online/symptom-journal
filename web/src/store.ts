@@ -33,6 +33,7 @@ export type GeneralFeeling = {
   notes: string;
 };
 export type SymptomRating = { name: string; severity: number };
+export const sleepQualities = ["Poor", "Fair", "Good"] as const;
 export const periodFlows = ["Spotting", "Light flow", "Moderate flow", "Heavy flow"] as const;
 export const glucoseUnits = ["mg/dL", "mmol/L"] as const;
 export const glucoseContexts = ["Fasting", "Before a meal", "After a meal"] as const;
@@ -41,6 +42,7 @@ export const readingLabels = {
   bloodPressure: "Blood pressure",
   bloodGlucose: "Blood sugar",
   period: "Period",
+  sleep: "Sleep",
 } as const;
 export type ReadingCategory = keyof typeof readingLabels;
 const readingTypes = Object.keys(readingLabels) as ReadingCategory[];
@@ -56,6 +58,7 @@ export type Entry = {
   bloodPressure?: { systolic: number; diastolic: number };
   bloodGlucose?: { value: number; unit: typeof glucoseUnits[number]; context: "" | typeof glucoseContexts[number] };
   period?: { flow: typeof periodFlows[number] };
+  sleep?: { bedtime: string; quality: "" | typeof sleepQualities[number] };
   photos?: EntryPhoto[];
   kind?: "symptom" | "general";
   feelings?: GeneralFeeling[];
@@ -153,6 +156,12 @@ export function validateDiary(value: unknown): Diary {
       if (!object(glucose) || !finite(glucose.value, 0.01, 9999)
         || !glucoseUnits.some(unit => unit === glucose.unit)
         || (glucose.context !== "" && !glucoseContexts.some(context => context === glucose.context))) return invalid();
+    }
+    if (e.sleep !== undefined) {
+      const sleep = e.sleep;
+      if (!object(sleep) || !text(sleep.bedtime, 40) ||
+        !Number.isFinite(Date.parse(sleep.bedtime)) || Date.parse(sleep.bedtime) >= Date.parse(e.occurredAt) ||
+        (sleep.quality !== "" && !sleepQualities.some(quality => quality === sleep.quality))) return invalid();
     }
     if (e.period !== undefined) {
       const period = e.period;
@@ -298,6 +307,7 @@ export function validateDiary(value: unknown): Diary {
       ...(e.bloodPressure ? { bloodPressure: { systolic: e.bloodPressure.systolic, diastolic: e.bloodPressure.diastolic } } : {}),
       ...(e.bloodGlucose ? { bloodGlucose: { value: e.bloodGlucose.value, unit: e.bloodGlucose.unit, context: e.bloodGlucose.context } } : {}),
       ...(e.period ? { period: { flow: e.period.flow } } : {}),
+      ...(e.sleep ? { sleep: { bedtime: e.sleep.bedtime, quality: e.sleep.quality } } : {}),
       ...(e.symptoms ? {symptoms:e.symptoms.map((s:SymptomRating)=>({name:s.name,severity:s.severity}))} : {}),
       ...(e.photos ? { photos: e.photos.map((p: EntryPhoto) => ({ id:p.id, dataUrl:p.dataUrl, width:p.width, height:p.height, caption:p.caption })) } : {}),
       ...(e.kind ? { kind: e.kind } : {}),

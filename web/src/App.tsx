@@ -1,3 +1,4 @@
+import { Droplet } from "lucide-react";
 import { t, displayLabel, formatLocale, language, matchesLabel, setLanguage } from "./language";
 import { ReportPage } from "./ReportPage";
 import { HelpPage } from "./HelpPage";
@@ -8,7 +9,7 @@ import { LibrarySelect } from "./LibrarySelect";
 import { HomeSnapshot } from "./HomeSnapshot";
 import { RecordTiles } from "./RecordTiles";
 import { entrySymptoms, entryTitle, libraryScope, quickOptions } from "./logging";
-import { isReadingCategory, readingLabels, glucoseContexts, glucoseUnits, periodFlows, type LogCategory, type SymptomRating } from "./store";
+import { isReadingCategory, readingLabels, glucoseContexts, glucoseUnits, periodFlows, sleepQualities, type LogCategory, type SymptomRating } from "./store";
 import { LocationObservation } from "./LocationObservation";
 import { specificLocationName } from "./subregions";
 import { PhotoEditor, EntryPhotos } from "./EntryPhotos";
@@ -329,7 +330,7 @@ export default function App() {
       <Shell app={fas} appName="Symptom Journal" signInLabel={t("Sign in")} nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
           {items.map(item=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={item.href === "/" ? "home" : item.href === "/history" ? "chart" : item.href === "/report" ? "report" : "settings"}/><span>{item.label}</span></a>)}
         </nav>}>
-        <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
+        <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [@media(max-height:500px)]:py-1! [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
             {["map", "record"].includes(step) && (
               <>
@@ -532,12 +533,10 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
-                <HomeSnapshot entries={entries} onOpen={openEntry} onHistory={() => navigate("/history")} />
-                <h2 className="text-base sm:text-lg [@media(max-height:580px)]:sr-only">{t("What would you like to record?")}</h2>
-                <RecordTiles onChoose={start}/>
-                <button type="button" className="min-h-11 text-sm font-semibold text-accent underline" onClick={() => navigate("/settings")}>
-                  {t("Backup options")}
-                </button>
+                <div className="grid gap-3 [@media(min-width:560px)_and_(max-height:500px)]:grid-cols-[3fr_2fr] [@media(min-width:560px)_and_(max-height:500px)]:items-start">
+                  <RecordTiles onChoose={start}/>
+                  <HomeSnapshot entries={entries} onOpen={openEntry} onHistory={() => navigate("/history")} />
+                </div>
               </>
             )}
             {step === "chooseCategory" && profile && (
@@ -636,6 +635,7 @@ export default function App() {
                   </div>
                   {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entry.symptoms.map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{displayLabel(s.name)}</span><SeverityRating value={s.severity}/></li>)}</ul>}
                   {entry.temperature && <p className="mt-3 text-sm text-muted">{displayLabel(entry.temperature.method) || t("Measurement site not recorded")}</p>}
+                  {entry.sleep && <p className="mt-3 text-sm text-muted">{t("Went to bed")} · {when(entry.sleep.bedtime)}{entry.sleep.quality && ` · ${t(entry.sleep.quality)}`}</p>}
                   {entry.bloodGlucose?.context && <p className="mt-3 text-sm text-muted">{displayLabel(entry.bloodGlucose.context)}</p>}
                   {!isReadingCategory(entry.category) && <dl className="my-5 grid grid-cols-2 gap-4">
                     <div>
@@ -1071,18 +1071,28 @@ function ProfileForm({
     </Panel>
   );
 }
+const moodQuickPick = ["Calm", "Joyful", "Anxious", "Low mood", "Irritable", "Overwhelmed"];
+function asLocalInput(timestamp: string) {
+  const date = new Date(timestamp);
+  return new Date(+date - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+const physicalQuickPick = ["Fatigue", "Nausea", "Dizziness", "Chills", "Feeling unwell", "Trouble sleeping"];
+
 function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,custom,onSaveCustom}: {
  entry?:Omit<Entry,"id"|"profileId"|"location">;location:Location|null;category:LogCategory;custom:string[];onSaveCustom:(names:string[])=>void;
  onSave:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onLocation:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;onBack:(e:Omit<Entry,"id"|"profileId"|"location">)=>void;
  feelings:GeneralFeeling[];
 }) {
  const [symptoms,setSymptoms]=useState<SymptomRating[]>(entrySymptoms(entry));
- const [occurredAt,setOccurredAt]=useState(entry?(()=>{const d=new Date(entry.occurredAt);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);})():localTime());
+ const [occurredAt,setOccurredAt]=useState(entry ? asLocalInput(entry.occurredAt) : localTime());
  const [duration,setDuration]=useState(entry?.duration??""),[notes,setNotes]=useState(entry?.notes??""),[photos,setPhotos]=useState(entry?.photos??[]),[busy,setBusy]=useState(false);
  const [temperature,setTemperature]=useState(entry?.temperature?.celsius.toString()??""),[unit,setUnit]=useState("C"),[method,setMethod]=useState(entry?.temperature?.method??"");
+ const [bedtime, setBedtime] = useState(entry?.sleep ? asLocalInput(entry.sleep.bedtime) : "");
+ const validSleep = Number.isFinite(Date.parse(bedtime)) && Date.parse(bedtime) < Date.parse(occurredAt);
  const celsius=unit==="C"?Number(temperature):(Number(temperature)-32)*5/9;
  const valid=category==="temperature" ? temperature!=="" && celsius>=30 && celsius<=45
-   : isReadingCategory(category) || symptoms.length>0 || feelings.length>0;
+   : category === "sleep" ? validSleep : isReadingCategory(category) || symptoms.length>0 || feelings.length>0;
  const snapshot=()=>({symptom:symptoms[0]?.name??entry?.symptom??"",severity:symptoms[0]?.severity??entry?.severity,symptoms:symptoms.length?symptoms:undefined,
    occurredAt:occurredAt && Number.isFinite(Date.parse(occurredAt))?new Date(occurredAt).toISOString():new Date().toISOString(),duration,notes,photos,
    ...(category==="temperature"?{temperature:{celsius:Math.round(celsius*100)/100,method}}:{})});
@@ -1101,6 +1111,11 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
    } else if (category === "period") {
      const flow = periodFlows.find(flow => flow === data.get("flow"));
      if (flow) onSave({ ...values, period: { flow } });
+   } else if (category === "sleep") {
+     onSave({ ...values, sleep: {
+       bedtime: new Date(bedtime).toISOString(),
+       quality: sleepQualities.find(quality => quality === data.get("sleepQuality")) ?? "",
+     } });
    } else onSave(values);};
  return <form id="entry-form" className="space-y-5" onSubmit={submit}>
    {category==="body" ? <><div className="flex items-center justify-between gap-3"><h2 className="text-lg">{location?displayLabel(specificLocationName(location)):t("No location")}</h2><button type="button" className="min-h-11 text-sm text-accent underline" disabled={busy} onClick={()=>onLocation(snapshot())}>{t("Edit body part")}</button></div>
@@ -1132,28 +1147,69 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
          <Field label={t("Blood sugar")}><input name="glucose" type="number" inputMode="decimal" min={0.01} max={9999} step="any" required className={input} defaultValue={entry?.bloodGlucose?.value} /></Field>
          <Field label={t("Unit")}><select name="glucoseUnit" className={input} defaultValue={entry?.bloodGlucose?.unit ?? "mg/dL"}>{glucoseUnits.map(unit => <option key={unit}>{unit}</option>)}</select></Field>
        </div>
-       <Field label={t("Meal timing (optional)")}>
-         <select name="glucoseContext" className={input} defaultValue={entry?.bloodGlucose?.context ?? ""}>
-           <option value="">{t("Not recorded")}</option>
-           {glucoseContexts.map(context => <option key={context} value={context}>{t(context)}</option>)}
-         </select>
-       </Field>
+       <fieldset>
+         <legend className="mb-2 text-sm font-semibold">{t("Meal timing (optional)")}</legend>
+         <div className="flex flex-wrap gap-2">
+           {["", ...glucoseContexts].map(context => (
+             <label key={context} className="relative cursor-pointer">
+               <input type="radio" className="peer sr-only" name="glucoseContext" value={context} defaultChecked={(entry?.bloodGlucose?.context ?? "") === context} />
+               <span className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-accent">{t(context || "Not recorded")}</span>
+             </label>
+           ))}
+         </div>
+       </fieldset>
      </div>
    ) : category === "period" ? (
-     <div className="rounded-3xl bg-panel p-5">
-       <Field label={t("Period flow")}>
-         <select name="flow" required className={input} defaultValue={entry?.period?.flow ?? ""}>
-           <option value="" disabled>{t("Choose flow")}</option>
-           {periodFlows.map(flow => <option key={flow} value={flow}>{t(flow)}</option>)}
+     <fieldset className="rounded-3xl bg-panel p-4">
+       <legend className="px-1 text-sm font-semibold">{t("Period flow")}</legend>
+       <div className="grid grid-cols-2 gap-2">
+         {periodFlows.map((flow, index) => (
+           <label key={flow} className="relative cursor-pointer">
+             <input type="radio" name="flow" value={flow} required defaultChecked={entry?.period?.flow === flow} className="peer sr-only" />
+             <span className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-line px-2 py-2 text-center text-sm peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
+               <span className="flex h-5 items-center gap-0.5 text-pain" aria-hidden="true">
+                 {Array.from({ length: Math.max(1, index) }, (_, drop) => (
+                   <Droplet key={drop} className={index === 0 ? "size-3" : "size-5 fill-current"} />
+                 ))}
+               </span>
+               {t(flow)}
+             </span>
+           </label>
+         ))}
+       </div>
+     </fieldset>
+   ) : category === "sleep" ? (
+     <div className="space-y-4 rounded-3xl bg-panel p-4">
+       <Field label={t("Went to bed")}><input className={input} type="datetime-local" required value={bedtime} onChange={event => setBedtime(event.target.value)} /></Field>
+       <Field label={t("Woke up")}><input className={input} type="datetime-local" required value={occurredAt} onChange={event => setOccurredAt(event.target.value)} /></Field>
+       {bedtime && occurredAt && !validSleep && <p role="status" className="text-sm text-danger">{t("Wake time must be after bedtime.")}</p>}
+       <Field label={t("Sleep quality (optional)")}>
+         <select name="sleepQuality" className={input} defaultValue={entry?.sleep?.quality ?? ""}>
+           <option value="">{t("Not recorded")}</option>
+           {sleepQualities.map(quality => <option key={quality} value={quality}>{t(quality)}</option>)}
          </select>
        </Field>
      </div>
-   ) : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} custom={custom} onSaveCustom={onSaveCustom}/>}
+   ) : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} quickPick={category==="mental" ? moodQuickPick : physicalQuickPick} mood={category==="mental"} custom={custom} onSaveCustom={onSaveCustom}/>}
    {!!feelings.length && <FeelingsSummary value={feelings}/>}
-   <Field label={t("When")}><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
+   {category === "sleep" ? null : category === "period" ? (
+     <Field label={t("Date")}>
+       <input className={input} type="date" required value={occurredAt.slice(0, 10)} onChange={event => {
+         const date = event.target.value;
+         setOccurredAt(previous => date ? date + (previous.slice(10) || "T12:00") : "");
+       }} />
+     </Field>
+   ) : (
+     <Field label={t("When")}><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
+   )}
    {!isReadingCategory(category) && <Field label={t("Duration (optional)")}><input className={input} maxLength={80} placeholder={t("e.g. 45 minutes")} value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
-   <Field label={t("Notes (optional)")}><textarea aria-label={t("Notes (optional)")} className={input} maxLength={2000} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
-   <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
+   <details className="rounded-xl bg-panel px-4" open={!!entry?.notes || !!entry?.photos?.length}>
+     <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">{t("Notes and photos (optional)")}</summary>
+     <div className="space-y-4 pb-4">
+       <Field label={t("Notes (optional)")}><textarea aria-label={t("Notes (optional)")} className={input} maxLength={2000} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
+       <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
+     </div>
+   </details>
    <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> {t("Save entry")}</button>
  </form>;
 }

@@ -171,7 +171,7 @@ function ReportEntry({ entry }: { entry: Entry }) {
         {(temperature || isReadingCategory(entry.category)) && (
           <p className="mt-1 text-sm">
             <strong>{displayLabel(readingValue(entry))}</strong>
-            {(temperature?.method || entry.bloodGlucose?.context) && ` · ${displayLabel(temperature?.method || entry.bloodGlucose?.context || "")}`}
+            {(temperature?.method || entry.bloodGlucose?.context || entry.sleep?.quality) && ` · ${displayLabel(temperature?.method || entry.bloodGlucose?.context || entry.sleep?.quality || "")}`}
           </p>
         )}
         {duration && <p className="mt-1 break-words text-xs text-muted">{t("Duration")} · {duration}</p>}
