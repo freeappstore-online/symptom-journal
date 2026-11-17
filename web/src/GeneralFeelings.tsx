@@ -3,31 +3,11 @@ import { DictionaryPicker } from "./DictionaryPicker";
 import { useState } from "react";
 import { buttonSecondary, inputClass, ScoreControl, StepActions } from "./ui";
 import type { GeneralFeeling } from "./store";
+import { quickOptions } from "./logging";
+
 const groups = [
-  {
-    kind: "physical" as const,
-    title: "Physical symptoms",
-    items: [
-      "Fatigue",
-      "Nausea",
-      "Dizziness",
-      "Feeling unwell",
-      "Brain fog",
-      "Sleepiness",
-    ],
-  },
-  {
-    kind: "mood" as const,
-    title: "Mood",
-    items: [
-      "Calm",
-      "Anxious",
-      "Low mood",
-      "Irritable",
-      "Overwhelmed",
-      "Content",
-    ],
-  },
+  { kind: "physical" as const, title: "Physical symptoms", items: quickOptions.physical },
+  { kind: "mood" as const, title: "Mood", items: quickOptions.mental },
 ];
 const field = inputClass;
 export function GeneralFeelings({

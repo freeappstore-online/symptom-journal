@@ -1,18 +1,19 @@
 import { entrySymptoms } from "./logging.ts";
 import { specificLocationName } from "./subregions.ts";
-import type { Entry } from "./store";
+import { isReadingCategory, readingLabels, type Entry } from "./store.ts";
 
 const reportTypes = [
   { id: "type:body", label: "Body symptoms" },
   { id: "type:physical", label: "General symptoms" },
   { id: "type:mental", label: "Mood & emotions" },
-  { id: "type:temperature", label: "Temperature" },
+  ...Object.entries(readingLabels).map(([key, label]) => ({ id: `type:${key}`, label })),
 ];
 
 function entryFilters(entry: Entry) {
   const filters: { id: string; label: string; category: string }[] = [];
   const symptoms = entrySymptoms(entry);
-  if (entry.temperature) filters.push({ ...reportTypes[3], category: "Entry types" });
+  const readingType = entry.temperature ? "temperature" : entry.category;
+  if (isReadingCategory(readingType)) filters.push({ id: `type:${readingType}`, label: readingLabels[readingType], category: "Entry types" });
   if (symptoms.length) {
     const type = entry.category ?? (entry.location ? "body" : "physical");
     const option = reportTypes.find(item => item.id === `type:${type}`);

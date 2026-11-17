@@ -13,6 +13,7 @@ export function LocationObservation({location,value,onChange,options,custom=[],o
    <button type="button" className={`${buttonSecondary} w-full justify-between`} onClick={()=>setOpen(true)}>{t("Choose symptoms")} <span aria-hidden="true">＋</span></button>
    {open && <DictionaryPicker
      title={location?t("{name} symptoms", {name:displayLabel(specificLocationName(location))}):t("Choose symptoms")}
+     searchContext={location ? `${specificLocationName(location)} · ${location.region}` : ""}
      multiple customSymptoms canSaveCustom={!!onSaveCustom} maxSelections={20}
      options={labels.map(label=>({id:label,label}))} selected={value.map(v=>v.name)}
      onClose={()=>setOpen(false)}

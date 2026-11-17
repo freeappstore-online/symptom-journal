@@ -11,7 +11,7 @@ Free, MIT-licensed. Read the platform [SKILLS.md](https://freeappstore.online/sk
 ## Project-specific decisions
 
 - Zero analytics and zero remote error reporting. Preserve the tracked SDK logger patch and privacy tests; do not add sensitive values to logs or URLs.
-- Local profiles are separate diary records, not platform accounts. Persistence uses validated, versioned localStorage with stale-tab protection; no public collections or cloud sync.
+- Local profiles are separate diary records, not platform accounts. Persistence uses validated, versioned IndexedDB with transactional stale-tab protection and migration from localStorage; no public collections or cloud sync.
 - Use familiar body-part names. Record area and optional focal spot without diagnosis, organ identification or acute-pain classification.
 - Keep copy concise and use the existing muted teal tokens.
 - Follow the internship's branch/PR review requirement where it conflicts with the platform's trunk-based guide. No push or publishing as part of local setup.
