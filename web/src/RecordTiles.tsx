@@ -1,22 +1,29 @@
 import { t } from "./language";
-import { ArrowRight, Brain, ClipboardList, PersonStanding, Thermometer } from "lucide-react";
-import type { LogCategory } from "./store";
+import { Activity, ArrowRight, Brain, ClipboardList, Droplet, PersonStanding } from "lucide-react";
+import { useState } from "react";
+import { Modal } from "@freeappstore/sdk/ui";
+import { readingLabels, type LogCategory } from "./store";
+import { buttonSecondary } from "./ui";
+
+const metrics = ["temperature", "bloodPressure", "bloodGlucose"] as const;
 
 const tiles = [
   { kind: "body", title: "Body symptoms", hint: "Mark where you feel it", icon: PersonStanding, tone: "bg-mint-soft text-mint" },
   { kind: "physical", title: "General symptoms", hint: "Fatigue, nausea and more", icon: ClipboardList, tone: "bg-sky-soft text-sky" },
   { kind: "mental", title: "Mood & emotions", hint: "Record how you feel", icon: Brain, tone: "bg-violet-soft text-violet" },
-  { kind: "temperature", title: "Temperature", hint: "Log a thermometer reading", icon: Thermometer, tone: "bg-pain-soft text-pain" },
+  { kind: "metrics", title: "Body measurements", hint: "Temperature, blood pressure and blood sugar", icon: Activity, tone: "bg-pain-soft text-pain" },
+  { kind: "period", title: "Period", hint: "Record bleeding or spotting", icon: Droplet, tone: "bg-violet-soft text-violet" },
 ] as const;
 
 export function RecordTiles({ onChoose }: { onChoose: (category: LogCategory) => void }) {
+  const [choosingMetric, setChoosingMetric] = useState(false);
   return (
     <section aria-label={t("What would you like to record?")} className="grid grid-cols-2 gap-2 sm:gap-3 [@media(min-width:600px)_and_(max-height:500px)]:grid-cols-4">
       {tiles.map(({ kind, title, hint, tone, icon: Symbol }) => (
         <button
           type="button"
           key={kind}
-          onClick={() => onChoose(kind)}
+          onClick={() => kind === "metrics" ? setChoosingMetric(true) : onChoose(kind)}
           className={`group flex min-w-0 flex-col items-start rounded-2xl border border-transparent p-3 text-left transition-colors hover:border-accent focus-visible:ring-2 focus-visible:ring-accent sm:p-4 [@media(max-height:580px)]:min-h-14 [@media(max-height:580px)]:flex-row [@media(max-height:580px)]:items-center [@media(max-height:580px)]:gap-2 [@media(max-height:580px)]:p-2 ${tone}`}
         >
           <span className="mb-2 flex w-full items-center justify-between gap-2 [@media(max-height:580px)]:mb-0 [@media(max-height:580px)]:w-auto">
@@ -31,6 +38,16 @@ export function RecordTiles({ onChoose }: { onChoose: (category: LogCategory) =>
           <span className="mt-1 text-xs leading-snug text-muted [@media(max-height:580px)]:sr-only">{t(hint)}</span>
         </button>
       ))}
+      <Modal open={choosingMetric} onClose={() => setChoosingMetric(false)} title={t("Body measurements")} maxWidth={400}>
+        <div className="grid gap-2">
+          {metrics.map(metric => (
+            <button key={metric} type="button" className={buttonSecondary} onClick={() => {
+              setChoosingMetric(false);
+              onChoose(metric);
+            }}>{t(readingLabels[metric])}</button>
+          ))}
+        </div>
+      </Modal>
     </section>
   );
 }

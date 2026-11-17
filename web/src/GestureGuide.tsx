@@ -27,16 +27,16 @@ function Hand({two=false}:{two?:boolean}) {
   {two?<path d="M46 83 33 62Q29 55 34 53Q38 51 43 59L44 26Q44 19 49 19Q54 19 54 26V48L60 25Q62 18 67 20Q72 22 70 29L66 52Q78 43 82 51L88 68Q89 78 82 91H51Z"/>:<path d="M47 86 33 64Q29 57 34 54Q38 52 44 61V24Q44 17 49 17Q54 17 54 24V49Q59 43 64 48Q70 44 75 51Q81 48 85 56L89 72Q89 82 82 93H52Z"/>}
  </g>;
 }
-export function GestureGuide({ input, canSelect = true }: { input: MapInput; canSelect?: boolean }) {
+export function GestureGuide({ input, canSelect = true, canPan = true }: { input: MapInput; canSelect?: boolean; canPan?: boolean }) {
  return <div className="space-y-3">
   {input === "mouse" ? <ul className="space-y-2">
-    {mouseDemos.filter(demo => canSelect || demo.kind !== "tap").map(({ kind, title, hint, icon: Symbol }) => (
+    {mouseDemos.filter(demo => (canSelect || demo.kind !== "tap") && (canPan || demo.kind !== "pan")).map(({ kind, title, hint, icon: Symbol }) => (
       <li key={kind} className="flex items-center gap-3 rounded-2xl bg-sky-soft p-3">
         <Symbol className="size-5 shrink-0 text-accent" aria-hidden="true"/>
         <div><strong className="block text-sm">{t(title)}</strong><span className="block text-xs text-muted">{t(hint)}</span></div>
       </li>
     ))}
-  </ul> : <div className="grid grid-cols-2 gap-3">{touchDemos.filter(demo => canSelect || demo.kind !== "tap").map(d=><figure key={d.kind} className="rounded-2xl bg-sky-soft p-3">
+  </ul> : <div className="grid grid-cols-2 gap-3">{touchDemos.filter(demo => (canSelect || demo.kind !== "tap") && (canPan || demo.kind !== "pan")).map(d=><figure key={d.kind} className="rounded-2xl bg-sky-soft p-3">
   <svg viewBox="0 0 130 110" className="mx-auto h-28 w-full text-accent" aria-hidden="true">
    {d.kind==="tap"&&<circle cx="49" cy="23" r="14" fill="none" stroke="currentColor" strokeWidth="2" className="motion-safe:animate-gesture-ripple"/>}
    {d.kind==="turn"&&<path d="M24 18H94m-9-7 9 7-9 7M33 11l-9 7 9 7" fill="none" stroke="currentColor" strokeWidth="2"/>}

@@ -1,10 +1,11 @@
+import { matchesLabel } from "./language.ts";
 import { detailSuggestions, detailedSymptoms } from "./detailed-symptoms.ts";
 import { parentRegion } from "./subregions.ts";
 import type { Location } from "./store";
 
 // Editorial observations, not diagnoses or a validated clinical ruleset.
 // IDs and diagnostic relationships from SYMP/WebMD have not been imported.
-export const catalogueVersion = "2026-11-05-expanded";
+export const catalogueVersion = "2026-11-09-expanded";
 export const catalogueReview = "awaiting-clinical-review";
 export const regionalSuggestions = {
   "head": {
@@ -156,6 +157,9 @@ export const regionalSuggestions = {
   },
   "chest": {
     "labels": [
+      "Pain when taking a deep breath",
+      "Pain when coughing",
+      "Chest feels tight",
       "Pain",
       "Pressure in chest",
       "Burning in chest",
@@ -358,31 +362,20 @@ export const skinSuggestions = {
 } as const;
 export function catalogueFor(location: Location | null) {
   if (!location) return null;
-  const region = (location.surface3d?.regionId ?? location.region.toLowerCase().replaceAll(" ", "-")).replace(/^(left|right)-/, "");
+  const region = parentRegion(location);
   const key = region === "arm" ? "upper-arm" : region === "pelvic-region" ? "pelvis" : region;
   return Object.hasOwn(regionalSuggestions,key) ? regionalSuggestions[key as keyof typeof regionalSuggestions] : null;
 }
 export function suggestionsFor(location: Location | null): readonly string[] {
   if (!location) return [];
   let labels: readonly string[] = catalogueFor(location)?.labels ?? ["Pain"];
-  const details=location.detail?detailSuggestions(location.detail):[];
-  if(parentRegion(location)==="head" && details.length) labels=details.flatMap(g=>g.labels);
+  const region = parentRegion(location);
+  const details = detailSuggestions(location.detail ?? region.replaceAll("-", " "), region);
+  if (region === "head" && location.detail) labels = details.flatMap(g => g.labels);
   else labels=[...labels,...details.flatMap(g=>g.labels)];
 
   return [...new Set([...labels, ...skinSuggestions.labels, ...detailedSymptoms.skin.labels])];
 }
-const aliases: Record<string, string> = {
-  "Pins and needles": "tingling prickling",
-  "Feels numb": "numbness sensation",
-  "Looks swollen": "swelling puffiness",
-  "Feels stiff": "stiffness",
-  "Muscles tighten on their own": "spasm twitch tight",
-  "Hard to pass stool": "constipation bowel poo poop",
-  "Loose or watery stools": "diarrhea diarrhoea bowel poo poop",
-  "Ringing or buzzing in ear": "tinnitus noise hearing",
-  "Pain when peeing": "urination urine burning",
-};
 export function searchSuggestions(labels: readonly string[], query: string): readonly string[] {
-  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  return labels.filter(label => words.every(word => `${label} ${aliases[label] ?? ""}`.toLowerCase().includes(word)));
+  return labels.filter(label => matchesLabel(label, query));
 }

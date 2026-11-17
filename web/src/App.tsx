@@ -8,7 +8,7 @@ import { LibrarySelect } from "./LibrarySelect";
 import { HomeSnapshot } from "./HomeSnapshot";
 import { RecordTiles } from "./RecordTiles";
 import { entrySymptoms, entryTitle, libraryScope, quickOptions } from "./logging";
-import type { LogCategory, SymptomRating } from "./store";
+import { isReadingCategory, readingLabels, glucoseContexts, glucoseUnits, periodFlows, type LogCategory, type SymptomRating } from "./store";
 import { LocationObservation } from "./LocationObservation";
 import { specificLocationName } from "./subregions";
 import { PhotoEditor, EntryPhotos } from "./EntryPhotos";
@@ -44,9 +44,8 @@ import { LocationSketch, RegionPicker } from "./BodyMap";
 import { FeelingsSummary } from "./GeneralFeelings";
 import {
   emptyDiary,
-  loadDiary,
+  mergeDiaryBackup,
   profileEntries,
-  saveDiary,
   validateDiary,
   type Diary,
   type BodyIllustration,
@@ -56,6 +55,8 @@ import {
   type Profile,
   type Sex,
 } from "./store";
+
+import { DiaryConflict, maxBackupBytes, openJournal, readLegacyForRecovery, serializeBackup, writeJournal } from "./journal-storage";
 
 const NAV: NavItem[] = [
   { label: "Home", href: "/", title: "Home — Symptom Journal" },
@@ -102,34 +103,28 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </label>
   );
 }
-function download(diary: Diary) {
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(diary, null, 2)], { type: "application/json" }),
-  );
+function download(diary: Diary, kind = "backup") {
+  const url = URL.createObjectURL(serializeBackup(diary));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `symptom-journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `symptom-journal-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function initial() {
-  try {
-    return { ...loadDiary(window.localStorage), error: "" };
-  } catch {
-    return {
-      diary: emptyDiary(),
-      raw: null,
-      error:
-        "Your saved diary could not be read. Nothing has been replaced. Check browser storage or reload before continuing.",
-    };
-  }
-}
 export default function App() {
   const [locale, setLocale] = useState(language);
-  const [boot] = useState(initial);
-  const [diary, setDiary] = useState(boot.diary);
-  const raw = useRef(boot.raw);
-  const [error, setError] = useState(boot.error);
+  const [diary, setDiary] = useState(emptyDiary);
+  const revision = useRef<string | null>(null);
+  const saving = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const [error, setError] = useState("");
+  const [failedDraft, setFailedDraft] = useState<Diary | null>(null);
+  const [persistence, setPersistence] = useState<"unknown" | "granted" | "denied" | "unavailable">("unknown");
+  const [exportDate, setExportDate] = useState(() => {
+    try { return localStorage.getItem("symptom-journal:last-export") ?? ""; }
+    catch { return ""; }
+  });
   const [notice, setNotice] = useState("");
   const [path, setPath] = useState(window.location.pathname);
   const [active, setActive] = useState<string | null>(null);
@@ -137,6 +132,7 @@ export default function App() {
     | "home"
     | "new"
     | "editProfile"
+    | "chooseCategory"
     | "map"
     | "record"
     | "detail"
@@ -169,33 +165,93 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step, path]);
-  const commit = (next: Diary) => {
-    if (boot.error) {
-      setError(boot.error);
+  useEffect(() => {
+    let cancelled = false;
+    openJournal().then(saved => {
+      if (cancelled) return;
+      revision.current = saved.revision;
+      setDiary(saved.diary);
+    }).catch(() => {
+      if (cancelled) return;
+      setDiary(readLegacyForRecovery());
+      setStorageUnavailable(true);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    if (navigator.storage?.persisted) {
+      navigator.storage.persisted().then(granted => {
+        if (!cancelled && granted) setPersistence("granted");
+      }).catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!failedDraft) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = true;
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [failedDraft]);
+
+  async function commit(next: Diary, unsavedEntry?: Entry) {
+    const keepEntry = () => {
+      if (unsavedEntry) setFailedDraft({
+        ...emptyDiary(),
+        profiles: next.profiles.filter(profile => profile.id === unsavedEntry.profileId),
+        entries: [unsavedEntry],
+      });
+    };
+    if (loading || saving.current) {
+      keepEntry();
+      setError("Another save is in progress. Try saving again.");
       return false;
     }
+    saving.current = true;
+    setNotice("");
     try {
-      raw.current = saveDiary(window.localStorage, next, raw.current);
-      setDiary(next);
+      if (!revision.current) throw new Error();
+      const saved = await writeJournal(next, revision.current);
+      revision.current = saved.revision;
+      setDiary(saved.diary);
+      if (unsavedEntry) setFailedDraft(null);
       setError("");
       return true;
-    } catch (e) {
-      setError(
-        e instanceof Error && e.message.includes("another tab")
-          ? e.message
-          : "Could not save. Your changes have not been stored. Browser storage may be full or unavailable. Export a backup before clearing any data.",
-      );
+    } catch (cause) {
+      keepEntry();
+      setError(cause instanceof DiaryConflict
+        ? "Your diary changed in another tab. Download your unsaved changes before reloading."
+        : cause instanceof Error && cause.message === "Backup exceeds the 50 MB limit."
+          ? "This diary has reached the 50 MB backup limit. Export a backup before freeing up space."
+          : "Could not save. Your changes have not been stored. Try again.");
       return false;
+    } finally {
+      saving.current = false;
     }
-  };
-  const saveCustom=(names:string[],scope:string)=>{
+  }
+
+  async function protectStorage() {
+    try {
+      if (!navigator.storage?.persist) {
+        setPersistence("unavailable");
+        return;
+      }
+      setPersistence(await navigator.storage.persist() ? "granted" : "denied");
+    } catch {
+      setPersistence("unavailable");
+    }
+  }
+
+  const saveCustom=async (names:string[],scope:string)=>{
     if(!profile)return;
     const old=diary.customSymptoms??[];
     const additions=names.filter(name=>!old.some(c=>c.profileId===profile.id && c.scope===scope && c.name.toLowerCase()===name.toLowerCase()));
     if(!additions.length)return;
     if(old.length+additions.length>500){setError("Your library is full. You can still record these symptoms.");return;}
     const customSymptoms=[...old,...additions.map(name=>({profileId:profile.id,name,scope}))];
-    if(commit({...diary,customSymptoms}))setNotice("Saved to your symptom library.");
+    if(await commit({...diary,customSymptoms}))setNotice("Saved to your symptom library.");
   };
   const navigate = (href: string) => {
     window.history.pushState(null, "", href);
@@ -238,7 +294,9 @@ export default function App() {
     </label>
   );
   const heading =
-    step === "new"
+    step === "chooseCategory"
+      ? "What would you like to record?"
+      : step === "new"
       ? "Create a profile"
       : step === "editProfile"
         ? "Edit profile"
@@ -249,7 +307,7 @@ export default function App() {
           : step === "map"
             ? "Where do you feel it?"
             : step === "record"
-                  ? category==="body"?"Review entry":category==="physical"?"General symptoms":category==="mental"?"Mental health":"Body temperature"
+                  ? category==="body"?"Review entry":category==="physical"?"General symptoms":isReadingCategory(category)?readingLabels[category]:"Mental health"
                   : step === "detail"
                     ? "Entry details"
                     : path === "/report"
@@ -268,7 +326,7 @@ export default function App() {
   };
   return (
     <div className="[&_.fas-main]:pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:[&_.fas-main]:pb-0 [&:has(>div>footer)_.fas-main]:pb-[calc(7rem+env(safe-area-inset-bottom))] sm:[&:has(>div>footer)_.fas-main]:pb-[calc(2.5rem+env(safe-area-inset-bottom))] [&:has(>div>footer)_nav[data-journal-nav]]:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] [&>div>header>div:first-child>a]:hidden [&>div>header>div:first-child>span]:text-accent [&>div>header>div:first-child>span]:font-extrabold [&>div>header>div:first-child>span]:text-base sm:[&>div>header>div:first-child>span]:text-lg [&>div>header]:flex-wrap [&>div>header]:gap-y-2 [&>div>header_button.bg-accent]:text-paper">
-      <Shell app={fas} appName="Symptom Journal" nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
+      <Shell app={fas} appName="Symptom Journal" signInLabel={t("Sign in")} nav={NAV.map(item => ({...item, label:t(item.label), title:locale === "en" ? item.title : `${t(item.label)} — Symptom Journal`}))} onNavigate={navigate} renderNav={({items,currentPath,onNavigate})=><nav data-journal-nav aria-label={t("Main")} className="fixed inset-x-0 bottom-0 z-50 flex justify-around gap-1 border-t border-line bg-panel px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-lg sm:static sm:border-0 sm:p-0 sm:shadow-none">
           {items.map(item=><a key={item.href} href={item.href} aria-current={currentPath===item.href?"page":undefined} onClick={e=>{if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();onNavigate(item.href);}}} className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 sm:px-4 text-xs font-bold text-muted aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent sm:flex-row sm:text-sm"><Icon name={item.href === "/" ? "home" : item.href === "/history" ? "chart" : item.href === "/report" ? "report" : "settings"}/><span>{item.label}</span></a>)}
         </nav>}>
         <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
@@ -329,6 +387,27 @@ export default function App() {
                 {t(error)}
               </div>
             )}
+            {failedDraft && (
+              <div className="my-4 rounded-xl bg-panel p-4 text-sm">
+                <p>{t("An entry did not save. You can download a backup containing just that entry and its profile.")}</p>
+                <button type="button" className="mt-2 min-h-11 font-semibold text-accent underline" onClick={() => {
+                  try {
+                    download(failedDraft);
+                    setNotice("Check Downloads or Files to make sure the backup was saved.");
+                  } catch {
+                    setError("Could not export the backup. Please try again.");
+                  }
+                }}>{t("Download unsaved entry backup")}</button>
+              </div>
+            )}
+            {loading && <p role="status">{t("Opening your diary…")}</p>}
+            {storageUnavailable && (
+              <p role="alert" className="my-4 rounded-xl border border-danger bg-danger-soft p-4 text-sm">
+                {t("Could not open journal storage. Reload to retry. If you can see your diary, export a backup.")}
+                {" "}
+                {path !== "/settings" && <button type="button" className="font-semibold underline" onClick={() => navigate("/settings")}>{t("Backup options")}</button>}
+              </p>
+            )}
             {notice && (
               <p
                 role="status"
@@ -344,7 +423,7 @@ export default function App() {
                 key={step}
                 profile={step === "editProfile" ? profile : undefined}
                 onCancel={() => profile ? navigate("/profile") : setStep("home")}
-                onSave={(values) => {
+                onSave={async (values) => {
                   const p: Profile = {
                     ...values,
                     id:
@@ -361,7 +440,7 @@ export default function App() {
                           )
                         : [...diary.profiles, p],
                   };
-                  if (commit(next)) {
+                  if (await commit(next)) {
                     setActive(p.id);
                     navigate(step === "editProfile" ? "/profile" : "/");
                   }
@@ -411,7 +490,7 @@ export default function App() {
                   {diary.profiles.map((p, index) => (
                     <button
                       key={p.id}
-                      disabled={!!boot.error}
+                      disabled={loading || storageUnavailable}
                       className="flex min-h-20 w-full items-center gap-4 bg-panel p-4 text-left text-sm transition-colors hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent"
                       onClick={() => choose(p)}
                     >
@@ -422,7 +501,7 @@ export default function App() {
                     </button>
                   ))}
                   <button
-                    disabled={!!boot.error}
+                    disabled={loading || storageUnavailable}
                     className="flex min-h-20 w-full items-center gap-4 bg-panel p-4 text-left text-sm hover:bg-accent-soft"
                     onClick={() => setStep("new")}
                   >
@@ -435,6 +514,9 @@ export default function App() {
                     <span className="font-semibold">{t("Create a profile")}</span>
                   </button>
                 </div>
+                <button type="button" className="min-h-11 text-sm font-semibold text-accent underline disabled:opacity-50" disabled={loading || storageUnavailable} onClick={() => file.current?.click()}>
+                  {t("Restore backup")}
+                </button>
                 <div className="flex gap-3 p-2">
                   <Icon name="shield" className="mt-0.5 size-5 text-accent" />
                   <div>
@@ -450,9 +532,20 @@ export default function App() {
             )}
             {step === "home" && path === "/" && profile && (
               <>
-                <HomeSnapshot entries={entries} />
+                <HomeSnapshot entries={entries} onOpen={openEntry} onHistory={() => navigate("/history")} />
                 <h2 className="text-base sm:text-lg [@media(max-height:580px)]:sr-only">{t("What would you like to record?")}</h2>
                 <RecordTiles onChoose={start}/>
+                <button type="button" className="min-h-11 text-sm font-semibold text-accent underline" onClick={() => navigate("/settings")}>
+                  {t("Backup options")}
+                </button>
+              </>
+            )}
+            {step === "chooseCategory" && profile && (
+              <>
+                <RecordTiles onChoose={start}/>
+                <button type="button" className={secondary} onClick={() => setStep("detail")}>
+                  {t("Cancel")}
+                </button>
               </>
             )}
             {step === "map" && profile && (
@@ -497,13 +590,13 @@ export default function App() {
 
                   setStep("map");
                 }}
-                onSave={(values) => {
+                onSave={async (values) => {
                   const e: Entry = {
                     ...values,
                     category,
-                    kind: values.temperature?"symptom":values.symptoms?.length?"symptom":feelings.length?"general":"symptom",
-                    symptom:values.temperature?"Body temperature":values.symptoms?.[0]?.name??values.symptom,
-                    severity:values.temperature?undefined:values.symptoms?.[0]?.severity??values.severity,
+                    kind: isReadingCategory(category)?"symptom":values.symptoms?.length?"symptom":feelings.length?"general":"symptom",
+                    symptom:isReadingCategory(category)?readingLabels[category]:values.symptoms?.[0]?.name??values.symptom,
+                    severity:isReadingCategory(category)?undefined:values.symptoms?.[0]?.severity??values.severity,
                     ...(feelings.length?{feelings}:{}),
                     id: entryId ?? crypto.randomUUID(),
                     profileId: profile.id,
@@ -517,7 +610,7 @@ export default function App() {
                         )
                       : [...diary.entries, e],
                   };
-                  if (commit(next)) {
+                  if (await commit(next, e)) {
                     setEntryId(e.id);
                     setStep("detail");
                     setNotice("Entry saved.");
@@ -537,13 +630,14 @@ export default function App() {
                         {when(entry.occurredAt)}
                       </p>
                     </div>
-                    {entry.kind !== "general" && !entry.temperature && !entry.symptoms && (
+                    {entry.kind !== "general" && !isReadingCategory(entry.category) && !entry.symptoms && (
                       <SeverityRating value={entry.severity} />
                     )}
                   </div>
                   {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entry.symptoms.map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{displayLabel(s.name)}</span><SeverityRating value={s.severity}/></li>)}</ul>}
-                  {entry.temperature && <p className="mt-3 text-sm text-muted">{displayLabel(entry.temperature.method) || "Measurement site not recorded"}</p>}
-                  <dl className="my-5 grid grid-cols-2 gap-4">
+                  {entry.temperature && <p className="mt-3 text-sm text-muted">{displayLabel(entry.temperature.method) || t("Measurement site not recorded")}</p>}
+                  {entry.bloodGlucose?.context && <p className="mt-3 text-sm text-muted">{displayLabel(entry.bloodGlucose.context)}</p>}
+                  {!isReadingCategory(entry.category) && <dl className="my-5 grid grid-cols-2 gap-4">
                     <div>
                       <dt className="text-sm text-muted">{t("Location")}</dt>
                       <dd className="font-semibold">
@@ -553,10 +647,10 @@ export default function App() {
                     <div>
                       <dt className="text-sm text-muted">{t("Duration")}</dt>
                       <dd className="break-words font-semibold">
-                        {entry.duration || "Not recorded"}
+                        {entry.duration || t("Not recorded")}
                       </dd>
                     </div>
-                  </dl>
+                  </dl>}
                   {entry.location && (
                     <LocationSketch
                       value={entry.location}
@@ -585,6 +679,16 @@ export default function App() {
                 </Panel>
                 <div className="flex flex-wrap gap-3">
                   <button
+                    type="button"
+                    className={primary}
+                    onClick={() => {
+                      setNotice("");
+                      setStep("chooseCategory");
+                    }}
+                  >
+                    {t("Add another entry")}
+                  </button>
+                  <button
                     className={secondary}
                     onClick={() => {
                       setDraft(undefined);
@@ -598,6 +702,16 @@ export default function App() {
                   >
                     {t("Edit entry")}
                   </button>
+                  <button type="button" className={secondary} onClick={() => {
+                    if (!profile) return;
+                    try {
+                      download({ ...emptyDiary(), profiles: [profile], entries: [entry] }, "entry");
+                      setError("");
+                      setNotice("Check Downloads or Files to make sure the backup was saved.");
+                    } catch {
+                      setError("Could not export the backup. Please try again.");
+                    }
+                  }}>{t("Export entry (JSON)")}</button>
                   <button
                     className={secondary}
                     onClick={() => {
@@ -660,54 +774,51 @@ export default function App() {
                 <Panel>
                   <h2 className="text-lg font-bold">{t("Keep a copy")}</h2>
                   <p className="mt-2 text-sm text-muted">
-                    {t("Backups include every profile and diary on this device. Store the file somewhere private.")}
+                    {t("A JSON backup includes all diary profiles, entries, and photos in this browser. Save it somewhere private so you can restore your diary later.")}
+                  </p>
+                  <p className="mt-2 text-sm text-muted">
+                    {t("Use your regular browser for entries you want to keep. Private browsing can erase entries when it ends. Export a backup before switching from an in-app browser.")}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       className={primary}
                       onClick={() => {
-                        download(diary);
-                        setNotice(
-                          "Backup file created. Check your browser’s downloads.",
-                        );
+                        try {
+                          download(diary);
+                          const date = new Date().toISOString();
+                          setExportDate(date);
+                          try { localStorage.setItem("symptom-journal:last-export", date); } catch { /* Export is still available. */ }
+                          setError("");
+                          setNotice("Check Downloads or Files to make sure the backup was saved.");
+                        } catch {
+                          setNotice("");
+                          setError("Could not export the backup. Please try again.");
+                        }
                       }}
-                      disabled={!!boot.error}
+                      disabled={loading || (storageUnavailable && diary.profiles.length === 0)}
                     >
                       {t("Export backup")}
                     </button>
                     <button
                       className={secondary}
                       onClick={() => file.current?.click()}
-                      disabled={!!boot.error}
+                      disabled={loading || storageUnavailable}
                     >
                       {t("Restore backup")}
                     </button>
-                    <input
-                      ref={file}
-                      type="file"
-                      accept="application/json,.json"
-                      className="hidden"
-                      aria-label={t("Choose a Symptom Journal backup")}
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!f) return;
-                        try {
-                          if (f.size > 10_000_000)
-                            throw Error(
-                              "Backup exceeds the 10 MB import limit.",
-                            );
-                          setPending(validateDiary(JSON.parse(await f.text())));
-                        } catch (ex) {
-                          setError(
-                            ex instanceof Error
-                              ? ex.message
-                              : "Could not read this file.",
-                          );
-                        }
-                      }}
-                    />
                   </div>
+                  {exportDate && Number.isFinite(Date.parse(exportDate)) && <p className="mt-2 text-sm text-muted">{t("Last backup requested")}: {when(exportDate)}</p>}
+                  <button type="button" className={`${secondary} mt-3`} disabled={persistence === "granted"} onClick={() => void protectStorage()}>{t("Protect local storage")}</button>
+                  {persistence !== "unknown" && <p role="status" className="mt-2 text-sm text-muted">{t({
+                    granted: "Storage protection granted. Keep a backup in case site data is cleared.",
+                    denied: "This browser did not grant storage protection. Keep a backup.",
+                    unavailable: "Storage protection is unavailable here. Keep a backup.",
+                  }[persistence])}</p>}
+                  <details className="mt-3 text-sm text-muted">
+                    <summary className="min-h-11 cursor-pointer py-3 font-semibold">{t("Moving to the Home Screen app or another browser?")}</summary>
+                    <p className="mb-2">{t("On iPhone, open the Share menu in Safari and choose Add to Home Screen. On Android, use Install app in the browser menu when available.")}</p>
+                    <p>{t("Export here first. Then open Symptom Journal in the new app or browser and choose Restore backup.")}</p>
+                  </details>
                 </Panel>
                 <Panel>
                   <h2 className="text-lg font-bold">{t("On this device")}</h2>
@@ -760,22 +871,51 @@ export default function App() {
               )}
           </div>
         </div>
+        <input
+          ref={file}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          aria-label={t("Choose a Symptom Journal backup")}
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            try {
+              if (f.size > maxBackupBytes)
+                throw Error(
+                  "Backup exceeds the 50 MB limit.",
+                );
+              setError("");
+              setPending(validateDiary(JSON.parse(await f.text())));
+            } catch (ex) {
+              setError(
+                ex instanceof SyntaxError ? "Could not read this file." : ex instanceof Error ? ex.message : "Could not read this file.",
+              );
+            }
+          }}
+        />
         <ConfirmDialog
           open={pending !== null}
-          title={t("Replace this device’s diary?")}
+          title={t("Import this backup?")}
           message={
             pending
-              ? t("Restore {profiles} profiles and {entries} entries. This replaces all current profiles and entries. Export a backup first if you need to keep them.", {profiles:pending.profiles.length, entries:pending.entries.length})
+              ? t("This backup contains {profiles} profiles and {entries} entries. Import adds new items and keeps your current versions of items already in the diary.", {profiles:pending.profiles.length, entries:pending.entries.length})
+                + (error ? " " + t(error) : "")
               : ""
           }
-          confirmLabel={t("Replace and restore")}
+          confirmLabel={t("Import backup")}
           onCancel={() => setPending(null)}
-          onConfirm={() => {
-            if (pending && commit(pending)) {
+          onConfirm={async () => {
+            if (!pending) return;
+            const merged = mergeDiaryBackup(diary, pending);
+            const added = merged.entries.length - diary.entries.length;
+            if (await commit(merged)) {
               setPending(null);
-              setActive(null);
-              navigate("/");
-              setNotice("Backup restored.");
+              setNotice(t("Backup imported. Entries added: {added}. Already present: {skipped}.", {
+                added,
+                skipped: pending.entries.length - added,
+              }));
             }
           }}
         />
@@ -786,9 +926,9 @@ export default function App() {
           confirmLabel={t("Delete entry")}
           variant="danger"
           onCancel={() => setDeleteEntry(null)}
-          onConfirm={() => {
+          onConfirm={async () => {
             if (
-              commit({
+              await commit({
                 ...diary,
                 entries: diary.entries.filter((e) => e.id !== deleteEntry),
               })
@@ -941,18 +1081,77 @@ function RecordForm({entry,location,onSave,onLocation,onBack,feelings,category,c
  const [duration,setDuration]=useState(entry?.duration??""),[notes,setNotes]=useState(entry?.notes??""),[photos,setPhotos]=useState(entry?.photos??[]),[busy,setBusy]=useState(false);
  const [temperature,setTemperature]=useState(entry?.temperature?.celsius.toString()??""),[unit,setUnit]=useState("C"),[method,setMethod]=useState(entry?.temperature?.method??"");
  const celsius=unit==="C"?Number(temperature):(Number(temperature)-32)*5/9;
- const valid=category==="temperature"?temperature!=="" && celsius>=30 && celsius<=45:symptoms.length>0 || feelings.length>0;
+ const valid=category==="temperature" ? temperature!=="" && celsius>=30 && celsius<=45
+   : isReadingCategory(category) || symptoms.length>0 || feelings.length>0;
  const snapshot=()=>({symptom:symptoms[0]?.name??entry?.symptom??"",severity:symptoms[0]?.severity??entry?.severity,symptoms:symptoms.length?symptoms:undefined,
    occurredAt:occurredAt && Number.isFinite(Date.parse(occurredAt))?new Date(occurredAt).toISOString():new Date().toISOString(),duration,notes,photos,
    ...(category==="temperature"?{temperature:{celsius:Math.round(celsius*100)/100,method}}:{})});
- const submit=(e:FormEvent)=>{e.preventDefault();if(busy)return;if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value")==="back"){onBack(snapshot());return;}if(valid)onSave(snapshot());};
+ const submit=(e:FormEvent)=>{e.preventDefault();if(busy)return;if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value")==="back"){onBack(snapshot());return;}if (!valid) return;
+   const values = snapshot();
+   const data = new FormData(e.currentTarget as HTMLFormElement);
+   if (category === "bloodPressure") {
+     onSave({ ...values, bloodPressure: { systolic: Number(data.get("systolic")), diastolic: Number(data.get("diastolic")) } });
+   } else if (category === "bloodGlucose") {
+     const unit = glucoseUnits.find(unit => unit === data.get("glucoseUnit"));
+     if (unit) onSave({ ...values, bloodGlucose: {
+       value: Number(data.get("glucose")),
+       unit,
+       context: glucoseContexts.find(context => context === data.get("glucoseContext")) ?? "",
+     } });
+   } else if (category === "period") {
+     const flow = periodFlows.find(flow => flow === data.get("flow"));
+     if (flow) onSave({ ...values, period: { flow } });
+   } else onSave(values);};
  return <form id="entry-form" className="space-y-5" onSubmit={submit}>
    {category==="body" ? <><div className="flex items-center justify-between gap-3"><h2 className="text-lg">{location?displayLabel(specificLocationName(location)):t("No location")}</h2><button type="button" className="min-h-11 text-sm text-accent underline" disabled={busy} onClick={()=>onLocation(snapshot())}>{t("Edit body part")}</button></div>
      <ul className="divide-y divide-line rounded-2xl bg-panel px-4">{symptoms.map(v=><li key={v.name} className="flex items-center justify-between gap-3 py-4"><span className="font-bold">{displayLabel(v.name)}</span><SeverityRating value={v.severity}/></li>)}</ul>
-   </> : category==="temperature" ? <div className="space-y-4 rounded-3xl bg-panel p-5"><div className="grid grid-cols-[1fr_6rem] gap-3"><Field label={t("Temperature")}><input aria-label={t("Temperature")} type="number" min={unit==="C"?30:86} max={unit==="C"?45:113} step="0.1" required inputMode="decimal" className={input} value={temperature} onChange={e=>setTemperature(e.target.value)}/></Field><Field label={t("Unit")}><select aria-label={t("Temperature unit")} className={input} value={unit} onChange={e=>{const old=unit;if(temperature)setTemperature((old==="C"?Number(temperature)*9/5+32:(Number(temperature)-32)*5/9).toFixed(1));setUnit(e.target.value);}}><option value="C">°C</option><option value="F">°F</option></select></Field></div><Field label={t("Measurement site (optional)")}><select className={input} value={method} onChange={e=>setMethod(e.target.value)}><option value="">{t("Not recorded")}</option>{["Mouth","Armpit","Ear","Forehead","Rectal","Other"].map(m=><option key={m} value={m}>{t(m)}</option>)}</select></Field></div> : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} custom={custom} onSaveCustom={onSaveCustom}/>}
+   </> : category==="temperature" ? <div className="space-y-4 rounded-3xl bg-panel p-5"><div className="grid grid-cols-[1fr_6rem] gap-3"><Field label={t("Temperature")}><input aria-label={t("Temperature")} type="number" min={unit==="C"?30:86} max={unit==="C"?45:113} step="0.1" required inputMode="decimal" className={input} value={temperature} onChange={e=>setTemperature(e.target.value)}/></Field><Field label={t("Unit")}><select aria-label={t("Temperature unit")} className={input} value={unit} onChange={e=>{const old=unit;if(temperature)setTemperature((old==="C"?Number(temperature)*9/5+32:(Number(temperature)-32)*5/9).toFixed(1));setUnit(e.target.value);}}><option value="C">°C</option><option value="F">°F</option></select></Field></div><Field label={t("Measurement site (optional)")}><select className={input} value={method} onChange={e=>setMethod(e.target.value)}><option value="">{t("Not recorded")}</option>{["Mouth","Armpit","Ear","Forehead","Rectal","Other"].map(m=><option key={m} value={m}>{t(m)}</option>)}</select></Field></div> : category === "bloodPressure" ? (
+     <fieldset className="space-y-3 rounded-3xl bg-panel p-4 sm:p-5">
+       <legend className="px-1 text-sm font-semibold">{t("Copy your monitor reading")}</legend>
+       <p className="text-sm text-muted">{t("Match SYS and DIA by their labels. The layout can vary by monitor.")}</p>
+       <div className="mx-auto max-w-md rounded-3xl border border-line bg-paper-deep p-3 shadow-sm">
+         <div className="divide-y divide-line rounded-2xl bg-sky-soft px-3">
+           <label className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+             <span><strong className="block">SYS</strong><span className="block text-xs text-muted">{t("Systolic")} · mmHg</span></span>
+             <input aria-label={t("SYS · Systolic (mmHg)")} name="systolic" type="number" inputMode="numeric" min={1} max={999} required className={`${input} text-right font-mono text-xl tabular-nums`} defaultValue={entry?.bloodPressure?.systolic} />
+           </label>
+           <label className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+             <span><strong className="block">DIA</strong><span className="block text-xs text-muted">{t("Diastolic")} · mmHg</span></span>
+             <input aria-label={t("DIA · Diastolic (mmHg)")} name="diastolic" type="number" inputMode="numeric" min={1} max={999} required className={`${input} text-right font-mono text-xl tabular-nums`} defaultValue={entry?.bloodPressure?.diastolic} />
+           </label>
+           <div className="flex items-center justify-between gap-2 py-2 text-xs text-muted">
+             <span>{t("PULSE · Heart rate")}</span><span>{t("Separate reading")}</span>
+           </div>
+         </div>
+       </div>
+       <p className="text-xs text-muted">{t("Check that your monitor shows mmHg before copying the numbers.")}</p>
+     </fieldset>
+   ) : category === "bloodGlucose" ? (
+     <div className="space-y-4 rounded-3xl bg-panel p-5">
+       <div className="grid grid-cols-[1fr_7rem] gap-3">
+         <Field label={t("Blood sugar")}><input name="glucose" type="number" inputMode="decimal" min={0.01} max={9999} step="any" required className={input} defaultValue={entry?.bloodGlucose?.value} /></Field>
+         <Field label={t("Unit")}><select name="glucoseUnit" className={input} defaultValue={entry?.bloodGlucose?.unit ?? "mg/dL"}>{glucoseUnits.map(unit => <option key={unit}>{unit}</option>)}</select></Field>
+       </div>
+       <Field label={t("Meal timing (optional)")}>
+         <select name="glucoseContext" className={input} defaultValue={entry?.bloodGlucose?.context ?? ""}>
+           <option value="">{t("Not recorded")}</option>
+           {glucoseContexts.map(context => <option key={context} value={context}>{t(context)}</option>)}
+         </select>
+       </Field>
+     </div>
+   ) : category === "period" ? (
+     <div className="rounded-3xl bg-panel p-5">
+       <Field label={t("Period flow")}>
+         <select name="flow" required className={input} defaultValue={entry?.period?.flow ?? ""}>
+           <option value="" disabled>{t("Choose flow")}</option>
+           {periodFlows.map(flow => <option key={flow} value={flow}>{t(flow)}</option>)}
+         </select>
+       </Field>
+     </div>
+   ) : <LocationObservation title={category==="mental"?t("How are you feeling?"):t("What are you noticing?")} location={null} value={symptoms} onChange={setSymptoms} options={quickOptions[category]} custom={custom} onSaveCustom={onSaveCustom}/>}
    {!!feelings.length && <FeelingsSummary value={feelings}/>}
    <Field label={t("When")}><input className={input} type="datetime-local" required value={occurredAt} onChange={e=>setOccurredAt(e.target.value)}/></Field>
-   {category!=="temperature" && <Field label={t("Duration (optional)")}><input className={input} maxLength={80} placeholder={t("e.g. 45 minutes")} value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
+   {!isReadingCategory(category) && <Field label={t("Duration (optional)")}><input className={input} maxLength={80} placeholder={t("e.g. 45 minutes")} value={duration} onChange={e=>setDuration(e.target.value)}/></Field>}
    <Field label={t("Notes (optional)")}><textarea aria-label={t("Notes (optional)")} className={input} maxLength={2000} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}/></Field>
    <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
    <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> {t("Save entry")}</button>
@@ -1020,7 +1219,7 @@ function EntryList({
                 <span className="mt-1 block break-words text-xs text-muted">
                   {e.location
                     ? displayLabel(entryTitle(e))
-                    : e.symptoms?.length ? (e.category==="mental"?t("Mental health"):t("General symptoms")) : e.temperature ? displayLabel(e.temperature.method) || t("Thermometer reading") : (e.feelings ?? [])
+                    : e.symptoms?.length ? (e.category==="mental"?t("Mental health"):t("General symptoms")) : isReadingCategory(e.category) ? displayLabel(e.temperature?.method || e.bloodGlucose?.context || "") : (e.feelings ?? [])
                         .slice(0, 2)
                         .map((f) => displayLabel(f.name))
                         .join(" · ") || t("No specific location")}
@@ -1039,7 +1238,7 @@ function EntryList({
                   </span>
                 )}
               </span>
-              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} {t("symptoms")}</span> : e.kind !== "general" && !e.temperature && <SeverityRating value={e.severity} />}
+              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} {t("symptoms")}</span> : e.kind !== "general" && !isReadingCategory(e.category) && <SeverityRating value={e.severity} />}
               <Icon name="chevron" className="size-3.5 text-line-strong" />
             </button>
           ))}

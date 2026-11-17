@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   emptyDiary,
+  mergeDiaryBackup,
   loadDiary,
   saveDiary,
   validateDiary,
@@ -124,4 +125,31 @@ test('malformed location metadata fails with the supported backup error', () => 
   }
   const d=diary(); d.entries[0].location.region='constructor'; d.entries[0].location.detail='Nose';
   assert.throws(()=>validateDiary(d), /supported Symptom Journal backup/);
+});
+
+test("backup import is repeatable and preserves locally edited entries", () => {
+  const current = { ...emptyDiary(), profiles: [profile], entries: [{ ...entry, notes: "Edited locally" }] };
+  const backup = { ...emptyDiary(), profiles: [{ ...profile, name: "Old name" }], entries: [entry, { ...entry, id: "another-entry" }] };
+  const merged = mergeDiaryBackup(current, backup);
+  assert.deepEqual(merged.profiles, [profile]);
+  assert.deepEqual(merged.entries, [current.entries[0], backup.entries[1]]);
+  assert.deepEqual(mergeDiaryBackup(merged, backup), merged);
+  assert.deepEqual(mergeDiaryBackup(emptyDiary(), backup), backup);
+});
+
+test("period and metric records preserve readings through backup validation and reject malformed data", () => {
+  const base = { ...entry, location: null, severity: undefined };
+  const entries = [
+    { ...base, id: "pressure", category: "bloodPressure", bloodPressure: { systolic: 118, diastolic: 76 } },
+    { ...base, id: "glucose", category: "bloodGlucose", bloodGlucose: { value: 5.4, unit: "mmol/L", context: "Fasting" } },
+    { ...base, id: "period", category: "period", period: { flow: "Light flow" } },
+  ];
+  const diary = { ...emptyDiary(), profiles: [profile], entries };
+  const saved = validateDiary(JSON.parse(JSON.stringify(diary)));
+  for (const record of entries) {
+    assert.deepEqual(saved.entries.find(item => item.id === record.id)[record.category], record[record.category]);
+  }
+  assert.throws(() => validateDiary({ ...diary, entries: [{ ...entries[0], bloodPressure: { systolic: 118 } }] }));
+  assert.throws(() => validateDiary({ ...diary, entries: [{ ...entries[1], bloodGlucose: { ...entries[1].bloodGlucose, unit: "g" } }] }));
+  assert.throws(() => validateDiary({ ...diary, entries: [{ ...entries[2], severity: 5 }] }));
 });

@@ -33,12 +33,29 @@ export type GeneralFeeling = {
   notes: string;
 };
 export type SymptomRating = { name: string; severity: number };
-export type LogCategory = "body" | "physical" | "mental" | "temperature";
+export const periodFlows = ["Spotting", "Light flow", "Moderate flow", "Heavy flow"] as const;
+export const glucoseUnits = ["mg/dL", "mmol/L"] as const;
+export const glucoseContexts = ["Fasting", "Before a meal", "After a meal"] as const;
+export const readingLabels = {
+  temperature: "Temperature",
+  bloodPressure: "Blood pressure",
+  bloodGlucose: "Blood sugar",
+  period: "Period",
+} as const;
+export type ReadingCategory = keyof typeof readingLabels;
+const readingTypes = Object.keys(readingLabels) as ReadingCategory[];
+export type LogCategory = "body" | "physical" | "mental" | ReadingCategory;
+export function isReadingCategory(category: unknown): category is ReadingCategory {
+  return typeof category === "string" && Object.hasOwn(readingLabels, category);
+}
 export type CustomSymptom = { profileId: string; name: string; scope: string };
 export type Entry = {
   symptoms?: SymptomRating[];
   category?: LogCategory;
   temperature?: { celsius: number; method: string };
+  bloodPressure?: { systolic: number; diastolic: number };
+  bloodGlucose?: { value: number; unit: typeof glucoseUnits[number]; context: "" | typeof glucoseContexts[number] };
+  period?: { flow: typeof periodFlows[number] };
   photos?: EntryPhoto[];
   kind?: "symptom" | "general";
   feelings?: GeneralFeeling[];
@@ -110,7 +127,7 @@ export function validateDiary(value: unknown): Diary {
       !e.symptom.trim() ||
       (e.kind === "general"
         ? e.severity !== undefined && e.severity !== 0
-        : e.temperature !== undefined ? e.severity !== undefined : !finite(e.severity, 0, 10) || !Number.isInteger(e.severity)) ||
+        : isReadingCategory(e.category) ? e.severity !== undefined : !finite(e.severity, 0, 10) || !Number.isInteger(e.severity)) ||
       !text(e.occurredAt, 40) ||
       !Number.isFinite(Date.parse(e.occurredAt)) ||
       !text(e.duration, 80) ||
@@ -122,9 +139,25 @@ export function validateDiary(value: unknown): Diary {
       (typeof e.kind !== "string" || !["symptom", "general"].includes(e.kind))
     )
       return invalid();
-    if (e.category !== undefined && (typeof e.category !== "string" || !["body","physical","mental","temperature"].includes(e.category))) return invalid();
+    if (e.category !== undefined && (typeof e.category !== "string" || !["body","physical","mental"].includes(e.category) && !isReadingCategory(e.category))) return invalid();
     if (e.temperature !== undefined && (!object(e.temperature) || !finite(e.temperature.celsius,30,45) || !text(e.temperature.method,40))) return invalid();
-    if ((e.temperature !== undefined && (e.category!=="temperature" || e.location!==null || e.kind==="general" || e.symptoms!==undefined)) || (e.category==="temperature" && e.temperature===undefined)) return invalid();
+    if (readingTypes.some(type => (e[type] !== undefined) !== (e.category === type))) return invalid();
+    if (isReadingCategory(e.category) && (e.location !== null || e.kind === "general" || e.symptoms !== undefined || (e.category !== "temperature" && e.feelings !== undefined))) return invalid();
+    if (e.bloodPressure !== undefined) {
+      const pressure = e.bloodPressure;
+      if (!object(pressure) || !finite(pressure.systolic, 1, 999) || !Number.isInteger(pressure.systolic)
+        || !finite(pressure.diastolic, 1, 999) || !Number.isInteger(pressure.diastolic)) return invalid();
+    }
+    if (e.bloodGlucose !== undefined) {
+      const glucose = e.bloodGlucose;
+      if (!object(glucose) || !finite(glucose.value, 0.01, 9999)
+        || !glucoseUnits.some(unit => unit === glucose.unit)
+        || (glucose.context !== "" && !glucoseContexts.some(context => context === glucose.context))) return invalid();
+    }
+    if (e.period !== undefined) {
+      const period = e.period;
+      if (!object(period) || !periodFlows.some(flow => flow === period.flow)) return invalid();
+    }
     if (e.symptoms !== undefined) {
       if (!Array.isArray(e.symptoms) || !e.symptoms.length || e.symptoms.length>20) return invalid();
       const names=new Set<string>();
@@ -261,7 +294,10 @@ export function validateDiary(value: unknown): Diary {
     entries: value.entries.map((e) => ({
       id: e.id,
       ...(e.category ? {category:e.category} : {}),
-      ...(e.temperature ? {temperature:{celsius:e.temperature.celsius,method:e.temperature.method}} : {}),
+      ...(e.temperature ? { temperature: { celsius: e.temperature.celsius, method: e.temperature.method } } : {}),
+      ...(e.bloodPressure ? { bloodPressure: { systolic: e.bloodPressure.systolic, diastolic: e.bloodPressure.diastolic } } : {}),
+      ...(e.bloodGlucose ? { bloodGlucose: { value: e.bloodGlucose.value, unit: e.bloodGlucose.unit, context: e.bloodGlucose.context } } : {}),
+      ...(e.period ? { period: { flow: e.period.flow } } : {}),
       ...(e.symptoms ? {symptoms:e.symptoms.map((s:SymptomRating)=>({name:s.name,severity:s.severity}))} : {}),
       ...(e.photos ? { photos: e.photos.map((p: EntryPhoto) => ({ id:p.id, dataUrl:p.dataUrl, width:p.width, height:p.height, caption:p.caption })) } : {}),
       ...(e.kind ? { kind: e.kind } : {}),
@@ -330,6 +366,27 @@ export function validateDiary(value: unknown): Diary {
     })),
   };
 }
+export function mergeDiaryBackup(current: Diary, backup: Diary): Diary {
+  const profileIds = new Set(current.profiles.map(profile => profile.id));
+  const entryIds = new Set(current.entries.map(entry => entry.id));
+  const symptomKey = ({ profileId, scope, name }: CustomSymptom) =>
+    JSON.stringify([profileId, scope, name.trim().toLowerCase()]);
+  const customSymptoms = new Map(
+    (current.customSymptoms ?? []).map(symptom => [symptomKey(symptom), symptom]),
+  );
+  for (const symptom of backup.customSymptoms ?? []) {
+    const key = symptomKey(symptom);
+    if (!customSymptoms.has(key)) customSymptoms.set(key, symptom);
+  }
+
+  return {
+    ...current,
+    profiles: [...current.profiles, ...backup.profiles.filter(profile => !profileIds.has(profile.id))],
+    entries: [...current.entries, ...backup.entries.filter(entry => !entryIds.has(entry.id))],
+    ...(customSymptoms.size ? { customSymptoms: [...customSymptoms.values()] } : {}),
+  };
+}
+
 export function loadDiary(storage: StoragePort): {
   diary: Diary;
   raw: string | null;

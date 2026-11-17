@@ -33,7 +33,7 @@ test("both model rigs identify all ten fingers and ten toes, preserving patient 
 test("surface suggestions recognise nose and keep all returned names valid",()=>{
  for(const [sex,rig] of Object.entries(digitLandmarks)) {
  const eye=rig["l-eye"],jaw=rig.jaw;
- const l=detailedSurfaceLocation({position:{x:0,y:(eye[1]+jaw[1]+.022)/2,z:.09},normal:{x:0,y:0,z:1}},`makehuman-${sex}-v1`);assert.equal(l.detail,"Nose");assert.ok(validSubregion(l));
+ const l=detailedSurfaceLocation({position:{x:0,y:(eye[1]+jaw[1]+.022)/2,z:.09},normal:{x:0,y:0,z:1}},`makehuman-${sex}-v1`);assert.match(l.detail,/nose/i);assert.ok(validSubregion(l));
  }
 });
 

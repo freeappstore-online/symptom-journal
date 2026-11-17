@@ -1,3 +1,4 @@
+diff --git a/dist/logger.js b/dist/logger.js
 --- a/dist/logger.js
 +++ b/dist/logger.js
 @@ -23,11 +23,8 @@
@@ -32,3 +33,37 @@
          // Serialize uploads: a manual flush() firing at the same instant as the
          // interval tick would otherwise read the same watermark, slice the same
          // batch, and POST it twice — the exact duplication the watermark prevents
+diff --git a/dist/ui/layout.js b/dist/ui/layout.js
+--- a/dist/ui/layout.js
++++ b/dist/ui/layout.js
+@@ -107,5 +107,5 @@
+  * to where the route was left) and moves focus to the new screen's heading.
+  */
+-export function Shell({ app, children, appName, nav, renderNav, onNavigate, renderError, renderLoading, requireAuth = false, showThemeToggle = true, }) {
++export function Shell({ app, children, appName, nav, renderNav, onNavigate, renderError, renderLoading, requireAuth = false, showThemeToggle = true, signInLabel = "Sign in", }) {
+     const { user, loading } = useAuth(app);
+     const [currentPath, setCurrentPath] = useCurrentPath();
+@@ -143,5 +143,5 @@
+     })) : navigate ? (_jsx(NavBar, { items: navItems, currentPath: currentPath, onNavigate: navigate })) : (_jsx(NavBar, { items: navItems }));
+     const loadingNode = renderLoading ? (renderLoading()) : (_jsx("div", { className: "fas-shell-loading flex flex-1 items-center justify-center px-4 py-12", children: _jsx(Spinner, { size: 28 }) }));
+-    return (_jsx(ToastProvider, { children: _jsxs("div", { className: "min-h-[100dvh] flex flex-col", children: [_jsx(SkipLink, { mainRef: mainRef }), _jsxs("header", { className: "flex items-center justify-between p-[0.5rem_1rem] border-b border-line bg-panel sticky top-0 z-[50]", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("a", { href: "https://freeappstore.online", className: "font-extrabold text-[1rem] text-accent no-underline", children: "Free" }), displayAppName && displayAppName !== 'FreeAppStore' && (_jsx("span", { className: "text-[0.85rem] font-semibold text-muted", children: displayAppName }))] }), navNode, _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(TextSizeToggle, {}), showThemeToggle && !user && _jsx(ThemeToggle, {}), user ? (_jsx(ProfileMenu, { app: app, showThemeToggle: showThemeToggle })) : (_jsx(SignInButton, { app: app, label: "Sign in" }))] })] }), _jsx(OfflineBanner, {}), _jsx("main", { id: "main", ref: mainRef, tabIndex: -1, className: "fas-main flex-1 flex flex-col", children: _jsx(ShellErrorBoundary, { app: app, renderError: renderError, resetKey: currentPath, children: _jsx(Suspense, { fallback: loadingNode, children: children }) }) }), _jsx(Footer, {})] }) }));
++    return (_jsx(ToastProvider, { children: _jsxs("div", { className: "min-h-[100dvh] flex flex-col", children: [_jsx(SkipLink, { mainRef: mainRef }), _jsxs("header", { className: "flex items-center justify-between p-[0.5rem_1rem] border-b border-line bg-panel sticky top-0 z-[50]", children: [_jsxs("div", { className: "flex items-center gap-3", children: [_jsx("a", { href: "https://freeappstore.online", className: "font-extrabold text-[1rem] text-accent no-underline", children: "Free" }), displayAppName && displayAppName !== 'FreeAppStore' && (_jsx("span", { className: "text-[0.85rem] font-semibold text-muted", children: displayAppName }))] }), navNode, _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(TextSizeToggle, {}), showThemeToggle && !user && _jsx(ThemeToggle, {}), user ? (_jsx(ProfileMenu, { app: app, showThemeToggle: showThemeToggle })) : (_jsx(SignInButton, { app: app, label: signInLabel }))] })] }), _jsx(OfflineBanner, {}), _jsx("main", { id: "main", ref: mainRef, tabIndex: -1, className: "fas-main flex-1 flex flex-col", children: _jsx(ShellErrorBoundary, { app: app, renderError: renderError, resetKey: currentPath, children: _jsx(Suspense, { fallback: loadingNode, children: children }) }) }), _jsx(Footer, {})] }) }));
+ }
+ //# sourceMappingURL=layout.js.map
+\ No newline at end of file
+diff --git a/dist/ui/layout.d.ts b/dist/ui/layout.d.ts
+--- a/dist/ui/layout.d.ts
++++ b/dist/ui/layout.d.ts
+@@ -53,4 +53,5 @@
+     requireAuth?: boolean;
+     showThemeToggle?: boolean;
++    signInLabel?: string;
+ }
+ /**
+@@ -60,4 +61,4 @@
+  * to where the route was left) and moves focus to the new screen's heading.
+  */
+-export declare function Shell({ app, children, appName, nav, renderNav, onNavigate, renderError, renderLoading, requireAuth, showThemeToggle, }: ShellProps): import("react").JSX.Element;
++export declare function Shell({ app, children, appName, nav, renderNav, onNavigate, renderError, renderLoading, requireAuth, showThemeToggle, signInLabel, }: ShellProps): import("react").JSX.Element;
+ //# sourceMappingURL=layout.d.ts.map
+\ No newline at end of file

@@ -40,6 +40,7 @@ type Props = {
   surface?: Surface3D;
   onPick?: (anchor: Anchor) => void;
   focus?: Anchor;
+  guided?: boolean;
   readOnly?: boolean;
   compact?: boolean;
   reference?: boolean;
@@ -130,6 +131,10 @@ function CanvasSurface(props: Props) {
     const vec = (p: Vec3) => new THREE.Vector3(p.x, p.y, p.z);
     const cameraReset = () => {
       const f = current.current.focus;
+      const closeUp = !!f && current.current.guided;
+      controls.enablePan = !closeUp;
+      controls.minDistance = closeUp ? 0.12 : 0.045;
+      controls.maxDistance = closeUp ? 0.8 : 2.8;
       const target = f ? vec(f.position) : new THREE.Vector3(0, 0.5, 0);
       controls.target.copy(target);
       const n = f ? vec(f.normal) : new THREE.Vector3(0, 0, 1);
@@ -442,12 +447,12 @@ function CanvasSurface(props: Props) {
   return (
     <div className="space-y-3">
       <Modal open={help !== null} onClose={()=>setHelp(null)} title={t("Explore the body map")} maxWidth={420}>
-        {help && <GestureGuide input={help} canSelect={!props.readOnly && !props.reference && !!props.onPick} />}
+        {help && <GestureGuide input={help} canPan={!props.guided || !props.focus} canSelect={!props.readOnly && !props.reference && !!props.onPick} />}
         <button type="button" className={`${buttonSecondary} mt-4 w-full`} onClick={()=>setHelp(null)}>{t("Got it")}</button></Modal>
       <div className="relative overflow-hidden rounded-3xl bg-sky-soft">
         <div
           ref={host}
-          className={`${props.compact ? "h-32" : props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
+          className={`${props.compact ? "h-32" : props.historyMarks ? "h-[65dvh] min-h-96" : props.readOnly ? "h-64" : props.guided && props.focus ? "h-[52dvh] min-h-64" : props.focus ? "h-[72dvh] min-h-96" : "h-[76dvh] min-h-96"} w-full`}
         />
         {status === "ready" && !props.reference && !props.compact && <BodyOrientation view={orientation} />}
         {!props.compact && <button type="button" aria-label={t("Open body map gesture guide")} title={t("Gesture guide")} className="absolute bottom-3 left-3 z-10 flex size-11 items-center justify-center rounded-full bg-accent text-lg font-bold text-paper shadow-sm print:hidden" onClick={event => {
@@ -455,10 +460,10 @@ function CanvasSurface(props: Props) {
           setHelp(mapInput(pointer));
         }}>?</button>}
         {status === "ready" && !props.compact && <div role="group" aria-label={t("Move and zoom body map")} className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3 print:hidden">
-          <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
+          {(!props.guided || !props.focus) && <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
             <button type="button" title={t("Move view up")} aria-label={t("Move view up")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(1)}>↑</button>
             <button type="button" title={t("Move view down")} aria-label={t("Move view down")} className="flex size-11 items-center justify-center text-xl font-bold text-paper hover:bg-accent-hover" onClick={()=>api.current?.pan(-1)}>↓</button>
-          </div>
+          </div>}
           <div className="flex flex-col overflow-hidden rounded-2xl bg-accent text-paper shadow-sm">
             <button type="button" title={t("Zoom in")} aria-label={t("Zoom in")} className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(0.8)}>+</button>
             <button type="button" title={t("Zoom out")} aria-label={t("Zoom out")} className="flex size-11 items-center justify-center text-2xl font-semibold text-paper hover:bg-accent-hover" onClick={()=>api.current?.zoom(1.25)}>−</button>

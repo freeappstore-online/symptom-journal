@@ -3,7 +3,8 @@ import { t, displayLabel, formatLocale } from "./language";
 import { locationLabel } from "./anatomy";
 import { LocationSketch } from "./BodyMap";
 import { EntryPhotos } from "./EntryPhotos";
-import { entrySymptoms } from "./logging";
+import { isReadingCategory, readingLabels } from "./store";
+import { entrySymptoms, readingValue } from "./logging";
 import { ReportCharts } from "./ReportCharts";
 import { LibrarySelect } from "./LibrarySelect";
 import { Icon, buttonPrimary, inputClass } from "./ui";
@@ -137,7 +138,7 @@ function ReportDocument({ entries, profileName, selection, bounds, includeCharts
 function ReportEntry({ entry }: { entry: Entry }) {
   const { location, temperature, duration, notes, feelings, photos } = entry;
   const symptoms = entrySymptoms(entry);
-  const heading = location ? locationLabel(location) : temperature ? "Temperature" : entry.category === "mental" ? "Mood" : "General symptoms";
+  const heading = location ? locationLabel(location) : temperature ? "Temperature" : isReadingCategory(entry.category) ? readingLabels[entry.category] : entry.category === "mental" ? "Mood" : "General symptoms";
   const showMap = location && location.mode !== "region" && (location.surface3d || location.illustration?.startsWith("adult-"));
   return (
     <div className="py-3">
@@ -167,8 +168,11 @@ function ReportEntry({ entry }: { entry: Entry }) {
             ))}
           </ul>
         )}
-        {temperature && (
-          <p className="mt-1 text-sm"><strong>{temperature.celsius.toFixed(1)} °C</strong>{temperature.method && ` · ${displayLabel(temperature.method)}`}</p>
+        {(temperature || isReadingCategory(entry.category)) && (
+          <p className="mt-1 text-sm">
+            <strong>{displayLabel(readingValue(entry))}</strong>
+            {(temperature?.method || entry.bloodGlucose?.context) && ` · ${displayLabel(temperature?.method || entry.bloodGlucose?.context || "")}`}
+          </p>
         )}
         {duration && <p className="mt-1 break-words text-xs text-muted">{t("Duration")} · {duration}</p>}
       </div>
