@@ -153,3 +153,56 @@ test("period and metric records preserve readings through backup validation and 
   assert.throws(() => validateDiary({ ...diary, entries: [{ ...entries[1], bloodGlucose: { ...entries[1].bloodGlucose, unit: "g" } }] }));
   assert.throws(() => validateDiary({ ...diary, entries: [{ ...entries[2], severity: 5 }] }));
 });
+
+
+test("monitoring updates round-trip and reject mismatched symptom names", () => {
+  const d = diary();
+  d.entries[0].monitoring = {
+    status: "active",
+    updates: [
+      {
+        id: "u1",
+        occurredAt: "2026-11-04T09:00:00Z",
+        severity: 6,
+        notes: "Still aching",
+      },
+    ],
+  };
+  const saved = validateDiary(d);
+  assert.equal(saved.entries[0].monitoring.status, "active");
+  assert.equal(saved.entries[0].monitoring.updates[0].severity, 6);
+  const bad = diary();
+  bad.entries[0].monitoring = {
+    status: "active",
+    updates: [
+      {
+        id: "u1",
+        occurredAt: "2026-11-04T09:00:00Z",
+        symptoms: [{ name: "Different", severity: 3 }],
+        notes: "",
+      },
+    ],
+  };
+  assert.throws(() => validateDiary(bad));
+});
+
+test("profileEntries sort by latest monitoring activity", () => {
+  const d = diary();
+  d.entries.push({
+    ...entry,
+    id: "e3",
+    occurredAt: "2026-11-01T08:00:00Z",
+    monitoring: {
+      status: "active",
+      updates: [
+        {
+          id: "u-late",
+          occurredAt: "2026-11-10T12:00:00Z",
+          severity: 2,
+          notes: "",
+        },
+      ],
+    },
+  });
+  assert.equal(profileEntries(d, "alice")[0].id, "e3");
+});

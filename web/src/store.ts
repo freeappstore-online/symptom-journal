@@ -51,6 +51,18 @@ export function isReadingCategory(category: unknown): category is ReadingCategor
   return typeof category === "string" && Object.hasOwn(readingLabels, category);
 }
 export type CustomSymptom = { profileId: string; name: string; scope: string };
+export type MonitoringUpdate = {
+  id: string;
+  occurredAt: string;
+  symptoms?: SymptomRating[];
+  severity?: number;
+  notes: string;
+  photos?: EntryPhoto[];
+};
+export type EntryMonitoring = {
+  status: "active" | "ended";
+  updates: MonitoringUpdate[];
+};
 export type Entry = {
   symptoms?: SymptomRating[];
   category?: LogCategory;
@@ -62,6 +74,7 @@ export type Entry = {
   photos?: EntryPhoto[];
   kind?: "symptom" | "general";
   feelings?: GeneralFeeling[];
+  monitoring?: EntryMonitoring;
   id: string;
   profileId: string;
   symptom: string;
@@ -205,6 +218,68 @@ export function validateDiary(value: unknown): Diary {
         (e.severity !== undefined && e.severity !== 0))
     )
       return invalid();
+    if (e.monitoring !== undefined) {
+      if (
+        isReadingCategory(e.category) ||
+        e.kind === "general" ||
+        !object(e.monitoring) ||
+        (typeof e.monitoring.status !== "string" ||
+          !["active", "ended"].includes(e.monitoring.status)) ||
+        !Array.isArray(e.monitoring.updates) ||
+        e.monitoring.updates.length > 1000
+      )
+        return invalid();
+      const updateIds = new Set<string>();
+      const baseNames = Array.isArray(e.symptoms)
+        ? e.symptoms.map((item: SymptomRating) => item.name.trim().toLowerCase())
+        : [String(e.symptom).trim().toLowerCase()];
+      for (const update of e.monitoring.updates) {
+        if (
+          !object(update) ||
+          !text(update.id, 80) ||
+          !update.id ||
+          updateIds.has(update.id) ||
+          !text(update.occurredAt, 40) ||
+          !Number.isFinite(Date.parse(update.occurredAt)) ||
+          !text(update.notes, 2000)
+        )
+          return invalid();
+        updateIds.add(update.id);
+        if (update.symptoms !== undefined) {
+          if (
+            !Array.isArray(update.symptoms) ||
+            update.symptoms.length !== baseNames.length
+          )
+            return invalid();
+          const seen = new Set<string>();
+          for (const item of update.symptoms) {
+            if (
+              !object(item) ||
+              !text(item.name, 80) ||
+              !item.name.trim() ||
+              !finite(item.severity, 0, 10) ||
+              !Number.isInteger(item.severity)
+            )
+              return invalid();
+            const key = item.name.trim().toLowerCase();
+            if (seen.has(key) || !baseNames.includes(key)) return invalid();
+            seen.add(key);
+          }
+          if (seen.size !== baseNames.length) return invalid();
+          if (
+            update.severity !== undefined &&
+            update.severity !== update.symptoms[0].severity
+          )
+            return invalid();
+        } else if (
+          !finite(update.severity, 0, 10) ||
+          !Number.isInteger(update.severity) ||
+          baseNames.length !== 1
+        )
+          return invalid();
+        if (update.photos !== undefined && !validPhotos(update.photos)) return invalid();
+      }
+    }
     if (e.location !== null) {
       const l = e.location;
       if (
@@ -321,6 +396,40 @@ export function validateDiary(value: unknown): Diary {
             })),
           }
         : {}),
+      ...(e.monitoring
+        ? {
+            monitoring: {
+              status: e.monitoring.status,
+              updates: e.monitoring.updates.map((update: MonitoringUpdate) => ({
+                id: update.id,
+                occurredAt: update.occurredAt,
+                ...(update.symptoms
+                  ? {
+                      symptoms: update.symptoms.map((item: SymptomRating) => ({
+                        name: item.name,
+                        severity: item.severity,
+                      })),
+                    }
+                  : {}),
+                ...(update.severity !== undefined
+                  ? { severity: update.severity }
+                  : {}),
+                notes: update.notes,
+                ...(update.photos
+                  ? {
+                      photos: update.photos.map((photo: EntryPhoto) => ({
+                        id: photo.id,
+                        dataUrl: photo.dataUrl,
+                        width: photo.width,
+                        height: photo.height,
+                        caption: photo.caption,
+                      })),
+                    }
+                  : {}),
+              })),
+            },
+          }
+        : {}),
       profileId: e.profileId,
       symptom: e.symptom,
       ...(e.kind === "general" ? {} : { severity: e.severity }),
@@ -421,7 +530,13 @@ export function saveDiary(
   return raw;
 }
 export function profileEntries(diary: Diary, id: string): Entry[] {
+  const latest = (e: Entry) => {
+    const times = [Date.parse(e.occurredAt)];
+    for (const update of e.monitoring?.updates ?? [])
+      times.push(Date.parse(update.occurredAt));
+    return Math.max(...times.filter(Number.isFinite), 0);
+  };
   return diary.entries
     .filter((e) => e.profileId === id)
-    .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
+    .sort((a, b) => latest(b) - latest(a));
 }

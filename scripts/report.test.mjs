@@ -37,3 +37,17 @@ test("report options include legacy observations, temperature and recorded body 
   assert.equal(reportEntries(entries, "type:temperature", range)[0].id, "temp");
   assert.ok(reportOptions(entries).some(option => option.id === "symptom:anxious"));
 });
+
+test("report date filters include monitored check-ins inside the window", () => {
+  const entries = [
+    entry("old", "2026-11-01T10:00:00", "Aching", {
+      monitoring: {
+        status: "active",
+        updates: [{ id: "u1", occurredAt: new Date("2026-11-07T12:00:00").toISOString(), severity: 6, notes: "Still sore" }],
+      },
+    }),
+  ];
+  const range = reportBounds("custom", "2026-11-06", "2026-11-07");
+  assert.deepEqual(reportEntries(entries, "symptom:aching", range).map(e => e.id), ["old"]);
+  assert.equal(reportEntries(entries, "symptom:aching", reportBounds("custom", "2026-11-02", "2026-11-03")).length, 0);
+});

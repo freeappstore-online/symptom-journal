@@ -1,6 +1,7 @@
 import { entrySymptoms } from "./logging.ts";
 import { locationLabel } from "./anatomy.ts";
-import type { Entry } from "./store";
+import { updateSymptoms } from "./monitoring.ts";
+import { isReadingCategory, type Entry, type SymptomRating } from "./store.ts";
 export type Observation = {
   id: string;
   entryId: string;
@@ -11,17 +12,63 @@ export type Observation = {
   score: number;
   mood: boolean;
 };
+function symptomLabel(entry: Entry, name: string) {
+  return (
+    name.trim() +
+    (entry.location
+      ? ` · ${locationLabel(entry.location)}`
+      : " · " + (entry.category === "mental" ? "Mental health" : "General"))
+  );
+}
+function pushSymptomRows(
+  rows: Observation[],
+  entry: Entry,
+  items: SymptomRating[],
+  time: number,
+  idSuffix: string,
+  endTime?: number,
+) {
+  items.forEach((item, i) => {
+    const label = symptomLabel(entry, item.name);
+    rows.push({
+      id: entry.id + ":symptom" + (i ? ":" + i : "") + idSuffix,
+      entryId: entry.id,
+      key: "symptom:" + label.toLowerCase(),
+      label,
+      time,
+      ...(endTime !== undefined ? { endTime } : {}),
+      score: item.severity,
+      mood: entry.category === "mental",
+    });
+  });
+}
 export function observations(entries: Entry[]): Observation[] {
   return entries
     .flatMap((e) => {
       const rows: Observation[] = [];
       const time = Date.parse(e.occurredAt);
       if (!Number.isFinite(time)) return rows;
-      if(e.kind!=="general" && !e.temperature) entrySymptoms(e).forEach((item,i)=>{
-        const label=item.name.trim()+(e.location?` · ${locationLabel(e.location)}`:" · "+(e.category==="mental"?"Mental health":"General"));
-        rows.push({id:e.id+":symptom"+(i?":"+i:""),entryId:e.id,key:"symptom:"+label.toLowerCase(),label,time,
-          ...(durationEnd(time,e.duration)!==null?{endTime:durationEnd(time,e.duration)!}:{}),score:item.severity,mood:e.category==="mental"});
-      });
+      if (e.kind !== "general" && !isReadingCategory(e.category)) {
+        pushSymptomRows(
+          rows,
+          e,
+          entrySymptoms(e),
+          time,
+          "",
+          durationEnd(time, e.duration) ?? undefined,
+        );
+        for (const update of e.monitoring?.updates ?? []) {
+          const updateTime = Date.parse(update.occurredAt);
+          if (!Number.isFinite(updateTime)) continue;
+          pushSymptomRows(
+            rows,
+            e,
+            updateSymptoms(e, update),
+            updateTime,
+            ":update:" + update.id,
+          );
+        }
+      }
       (e.feelings ?? []).forEach((f, i) =>
         rows.push({
           id: e.id + ":feeling:" + i,
@@ -53,21 +100,33 @@ export function homeSnapshot(entries: Entry[], now = new Date()) {
   let mood = 0;
   let temperatureSum = 0;
   let temperatureCount = 0;
+  const end = now.getTime();
 
-  for (const entry of entries) {
-    const time = Date.parse(entry.occurredAt);
-    if (!Number.isFinite(time) || time < start || time > now.getTime()) continue;
-    if (entry.temperature) {
-      temperatureSum += entry.temperature.celsius;
-      temperatureCount++;
-    }
-    const symptomCount = entrySymptoms(entry).length;
+  const countSymptoms = (entry: Entry, items: SymptomRating[]) => {
+    const symptomCount = items.length;
     if (entry.category === "mental") mood += symptomCount;
     else if (entry.category === "body" || entry.location) body += symptomCount;
     else general += symptomCount;
-    for (const feeling of entry.feelings ?? []) {
-      if (feeling.kind === "mood") mood++;
-      else general++;
+  };
+
+  for (const entry of entries) {
+    const time = Date.parse(entry.occurredAt);
+    if (Number.isFinite(time) && time >= start && time <= end) {
+      if (entry.temperature) {
+        temperatureSum += entry.temperature.celsius;
+        temperatureCount++;
+      }
+      countSymptoms(entry, entrySymptoms(entry));
+      for (const feeling of entry.feelings ?? []) {
+        if (feeling.kind === "mood") mood++;
+        else general++;
+      }
+    }
+    for (const update of entry.monitoring?.updates ?? []) {
+      const updateTime = Date.parse(update.occurredAt);
+      if (!Number.isFinite(updateTime) || updateTime < start || updateTime > end)
+        continue;
+      countSymptoms(entry, updateSymptoms(entry, update));
     }
   }
 

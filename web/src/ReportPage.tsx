@@ -6,6 +6,7 @@ import { EntryPhotos } from "./EntryPhotos";
 import { isReadingCategory, readingLabels } from "./store";
 import { entrySymptoms, readingValue } from "./logging";
 import { ReportCharts } from "./ReportCharts";
+import { ReportMonitoringSummary } from "./ReportMonitoring";
 import { LibrarySelect } from "./LibrarySelect";
 import { Icon, buttonPrimary, inputClass } from "./ui";
 import { reportBounds, reportEntries, reportOptions, type ReportBounds, type ReportRange } from "./report";
@@ -16,7 +17,7 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
   const [range, setRange] = useState<ReportRange>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
-  const [includeCharts, setIncludeCharts] = useState(false);
+  const [includeCharts, setIncludeCharts] = useState(true);
   const [preview, setPreview] = useState(false);
   const options = reportOptions(entries);
   const bounds = reportBounds(range, from, through);
@@ -82,7 +83,11 @@ export function ReportPage({ entries, profileName }: { entries: Entry[]; profile
       </p>
       <button type="button" className={buttonPrimary} disabled={!matching.length} onClick={() => showPreview(true)}>{t("Preview report")}</button>
     </div>
-    {!!matching.length && <p className="text-xs text-muted">{t("Matching entries include their notes and photos.")}</p>}
+    {!!matching.length && (
+      <p className="text-xs text-muted">
+        {t("Matching entries include notes and photos. Monitored symptoms add intensity charts and a timed change log.")}
+      </p>
+    )}
   </section>;
 }
 
@@ -175,6 +180,13 @@ function ReportEntry({ entry }: { entry: Entry }) {
           </p>
         )}
         {duration && <p className="mt-1 break-words text-xs text-muted">{t("Duration")} · {duration}</p>}
+        {entry.monitoring && (
+          <p className="mt-1 text-xs text-muted">
+            {entry.monitoring.status === "active" ? t("Monitoring") : t("Was monitoring")}
+            {" · "}
+            {1 + entry.monitoring.updates.length} {t("check-ins")}
+          </p>
+        )}
       </div>
       {notes && <p className="mt-2 whitespace-pre-wrap break-words text-sm"><strong>{t("Notes")}</strong> · {notes}</p>}
       {(showMap || !!photos?.length) && (
@@ -185,6 +197,39 @@ function ReportEntry({ entry }: { entry: Entry }) {
             </figure>
           )}
           <EntryPhotos photos={photos} compact />
+        </div>
+      )}
+      <ReportMonitoringSummary entry={entry} />
+      {!!entry.monitoring?.updates.length && (
+        <div className="mt-2 space-y-2 text-sm">
+          <p className="text-xs font-semibold text-muted">{t("Severity check-ins")}</p>
+          {entry.monitoring.updates
+            .slice()
+            .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
+            .map((update, index) => (
+              <div key={update.id} className="rounded-xl bg-paper px-3 py-2">
+                <time className="text-xs text-muted" dateTime={update.occurredAt}>
+                  {new Date(update.occurredAt).toLocaleString(formatLocale(), {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                  {" · "}
+                  {t("Check-in {n}", { n: index + 1 })}
+                </time>
+                <ul className="mt-1 space-y-1">
+                  {(update.symptoms ??
+                    (update.severity !== undefined
+                      ? [{ name: entry.symptom, severity: update.severity }]
+                      : entrySymptoms(entry))
+                  ).map((symptom) => (
+                    <li key={symptom.name} className="flex justify-between gap-3">
+                      <span className="min-w-0 break-words">{displayLabel(symptom.name)}</span>
+                      <span className="shrink-0 tabular-nums">{symptom.severity}/10</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
         </div>
       )}
     </div>

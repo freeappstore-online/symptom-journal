@@ -25,7 +25,7 @@ export function ReportCharts({ entries, bounds }: { entries: Entry[]; bounds: Re
         {!!buckets.length && (
           <>
             <ReportPlot buckets={buckets} title={t("Number of logs")} metric="count" />
-            <ReportPlot buckets={buckets} title={t("Average severity / intensity")} metric="mean" />
+            <ReportPlot buckets={buckets} title={t("Intensity over time")} metric="mean" />
           </>
         )}
         {hasTemperature && <TemperatureHistory entries={entries} compact />}

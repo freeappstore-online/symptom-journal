@@ -38,7 +38,18 @@ import {
   ProfileInitial,
   StepProgress,
   SeverityRating,
+  ScoreControl,
 } from "./ui";
+import {
+  canMonitor,
+  isMonitoringActive,
+  latestSymptoms,
+  monitoringChangeLog,
+  monitoringCheckpointCount,
+  monitoringCheckpoints,
+  updateSymptoms,
+} from "./monitoring";
+import { MonitoringChangeLog, MonitoringIntensityChart } from "./ReportMonitoring";
 import { fas } from "./platform";
 import { TemperatureHistory } from "./TemperatureHistory";
 import { HistoryRecap } from "./HistoryRecap";
@@ -52,8 +63,10 @@ import {
   type Diary,
   type BodyIllustration,
   type Entry,
+  type EntryMonitoring,
   type GeneralFeeling,
   type Location,
+  type MonitoringUpdate,
   type Profile,
   type Sex,
 } from "./store";
@@ -135,6 +148,7 @@ export default function App() {
     | "new"
     | "editProfile"
     | "chooseCategory"
+    | "update"
     | "map"
     | "record"
     | "detail"
@@ -333,13 +347,19 @@ export default function App() {
         </nav>}>
         <div className={`mx-auto w-full max-w-2xl [&_h1]:text-[1.5rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-ink-strong ${isRecordingMenu ? "px-4 py-3 sm:px-8 sm:py-5 [@media(max-height:580px)]:py-2 [@media(max-height:500px)]:py-1! [&_.fas-page-header]:mb-0 [&_.fas-page-header]:items-center [&_.fas-page-header]:gap-2" : "px-5 py-6 sm:px-8 sm:py-10"}`}>
           <div className="print:hidden">
-            {["map", "record"].includes(step) && (
+            {["map", "record", "update"].includes(step) && (
               <>
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3">
                     {step === "record" && <button className="min-h-11 font-semibold text-accent" type="submit"
                       form="entry-form" formNoValidate name="intent" value="back">{t("← Back")}</button>}
-                    <span className="font-semibold text-muted">{entryId ? t("Edit entry") : t("New entry")}</span>
+                    <span className="font-semibold text-muted">
+                      {step === "update"
+                        ? t("Add a check-in")
+                        : entryId
+                          ? t("Edit entry")
+                          : t("New entry")}
+                    </span>
                   </div>
                   <button
                     className="min-h-11 text-muted"
@@ -351,7 +371,7 @@ export default function App() {
                     {t("Cancel")}
                   </button>
                 </div>
-                {category==="body" && <StepProgress current={step === "record" ? 2 : 1}/>}
+                {category==="body" && step !== "update" && <StepProgress current={step === "record" ? 2 : 1}/>}
               </>
             )}
             <PageHeader
@@ -373,7 +393,7 @@ export default function App() {
                   <Icon name="user" className="size-3.5" />
                   {profile.name}
                 </span>
-                {!(["map","record"].includes(step)) && <button
+                {!(["map","record","update"].includes(step)) && <button
                   className="min-h-11 text-accent underline underline-offset-4"
                   onClick={switchProfile}
                 >
@@ -538,6 +558,62 @@ export default function App() {
                   <RecordTiles onChoose={start}/>
                   <HomeSnapshot entries={entries} onOpen={openEntry} onHistory={() => navigate("/history")} />
                 </div>
+                {!!entries.filter(isMonitoringActive).length && (
+                  <Panel>
+                    <h2 className="text-lg font-bold">{t("Still monitoring")}</h2>
+                    <p className="mt-2 text-sm text-muted">
+                      {t("Add a check-in to the same symptom. Past details stay in history.")}
+                    </p>
+                    <ul className="mt-4 divide-y divide-line">
+                      {entries.filter(isMonitoringActive).map((item) => {
+                        const scores = latestSymptoms(item);
+                        return (
+                          <li key={item.id} className="flex items-center gap-3 py-3">
+                            <button
+                              type="button"
+                              className="min-w-0 flex-1 text-left"
+                              onClick={() => openEntry(item)}
+                            >
+                              <span className="block break-words text-sm font-bold">
+                                {displayLabel(entryTitle(item))}
+                              </span>
+                              <span className="mt-1 block text-xs text-muted">
+                                {item.location
+                                  ? displayLabel(specificLocationName(item.location))
+                                  : item.category === "mental"
+                                    ? t("Mental health")
+                                    : t("General symptoms")}
+                                {" · "}
+                                {monitoringCheckpointCount(item)} {t("check-ins")}
+                              </span>
+                            </button>
+                            {scores.length === 1 && <SeverityRating value={scores[0].severity} />}
+                            <button
+                              type="button"
+                              className={`${secondary} shrink-0`}
+                              onClick={() => {
+                                setEntryId(item.id);
+                                setCategory(
+                                  item.category ??
+                                    (item.location
+                                      ? "body"
+                                      : item.feelings?.some((f) => f.kind === "mood")
+                                        ? "mental"
+                                        : "physical"),
+                                );
+                                setLocation(item.location);
+                                setFeelings(item.feelings ?? []);
+                                setStep("update");
+                              }}
+                            >
+                              {t("Update")}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </Panel>
+                )}
               </>
             )}
             {step === "chooseCategory" && profile && (
@@ -593,13 +669,41 @@ export default function App() {
                   setStep("map");
                 }}
                 onSave={async (values) => {
+                  const kind = isReadingCategory(category)?"symptom":values.symptoms?.length?"symptom":feelings.length?"general":"symptom";
+                  const previous = entryId ? entry : undefined;
+                  const nextNames = (values.symptoms?.length
+                    ? values.symptoms
+                    : values.symptom
+                      ? [{ name: values.symptom, severity: values.severity ?? 5 }]
+                      : []
+                  )
+                    .map((item) => item.name.trim().toLowerCase())
+                    .sort()
+                    .join("|");
+                  const previousNames = entrySymptoms(previous)
+                    .map((item) => item.name.trim().toLowerCase())
+                    .sort()
+                    .join("|");
+                  const preservedUpdates =
+                    previous?.monitoring && nextNames && nextNames === previousNames
+                      ? previous.monitoring.updates
+                      : [];
+                  const keepMonitoring =
+                    !isReadingCategory(category) && kind !== "general" && !!(values as {monitor?: boolean}).monitor;
+                  const monitoring: EntryMonitoring | undefined = keepMonitoring
+                    ? { status: "active", updates: preservedUpdates }
+                    : previous?.monitoring || preservedUpdates.length
+                      ? { status: "ended", updates: preservedUpdates }
+                      : undefined;
+                  const { monitor: _monitor, ...fields } = values as typeof values & { monitor?: boolean };
                   const e: Entry = {
-                    ...values,
+                    ...fields,
                     category,
-                    kind: isReadingCategory(category)?"symptom":values.symptoms?.length?"symptom":feelings.length?"general":"symptom",
+                    kind,
                     symptom:isReadingCategory(category)?readingLabels[category]:values.symptoms?.[0]?.name??values.symptom,
                     severity:isReadingCategory(category)?undefined:values.symptoms?.[0]?.severity??values.severity,
                     ...(feelings.length?{feelings}:{}),
+                    ...(monitoring ? { monitoring } : {}),
                     id: entryId ?? crypto.randomUUID(),
                     profileId: profile.id,
                     location,
@@ -620,6 +724,28 @@ export default function App() {
                 }}
               />
             )}
+            {step === "update" && entry && canMonitor(entry) && (
+              <MonitoringUpdateForm
+                entry={entry}
+                onCancel={() => setStep("detail")}
+                onSave={async (update) => {
+                  const monitoring: EntryMonitoring = {
+                    status: "active",
+                    updates: [...(entry.monitoring?.updates ?? []), update],
+                  };
+                  const next = {
+                    ...diary,
+                    entries: diary.entries.map((old) =>
+                      old.id === entry.id ? { ...old, monitoring } : old,
+                    ),
+                  };
+                  if (await commit(next, { ...entry, monitoring })) {
+                    setNotice("Check-in saved.");
+                    setStep("detail");
+                  }
+                }}
+              />
+            )}
             {step === "detail" && entry && (
               <>
                 <Panel>
@@ -631,12 +757,28 @@ export default function App() {
                       <p className="mt-2 text-sm text-muted">
                         {when(entry.occurredAt)}
                       </p>
+                      {entry.monitoring && (
+                        <p className="mt-2 text-xs font-semibold text-accent">
+                          {entry.monitoring.status === "active"
+                            ? t("Monitoring · {count} check-ins", {
+                                count: monitoringCheckpointCount(entry),
+                              })
+                            : t("Monitoring ended · {count} check-ins", {
+                                count: monitoringCheckpointCount(entry),
+                              })}
+                        </p>
+                      )}
                     </div>
                     {entry.kind !== "general" && !isReadingCategory(entry.category) && !entry.symptoms && (
                       <SeverityRating value={entry.severity} />
                     )}
                   </div>
-                  {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entry.symptoms.map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{displayLabel(s.name)}</span><SeverityRating value={s.severity}/></li>)}</ul>}
+                  {entry.monitoring && (
+                    <p className="mt-3 text-sm text-muted">
+                      {t("Original details stay saved. Each check-in adds a new update for the same symptom.")}
+                    </p>
+                  )}
+                  {!!entry.symptoms?.length && <ul className="mt-4 divide-y divide-line">{entrySymptoms(entry).map(s=><li key={s.name} className="flex items-center justify-between py-3"><span>{displayLabel(s.name)}</span><SeverityRating value={s.severity}/></li>)}</ul>}
                   {entry.temperature && <p className="mt-3 text-sm text-muted">{displayLabel(entry.temperature.method) || t("Measurement site not recorded")}</p>}
                   {entry.sleep && <p className="mt-3 text-sm text-muted">{t("Went to bed")} · {when(entry.sleep.bedtime)}{entry.sleep.quality && ` · ${t(entry.sleep.quality)}`}</p>}
                   {entry.bloodGlucose?.context && <p className="mt-3 text-sm text-muted">{displayLabel(entry.bloodGlucose.context)}</p>}
@@ -679,57 +821,171 @@ export default function App() {
                       </p>
                     </div>
                   )}
+                  {!!entry.monitoring?.updates.length && (() => {
+                    const latest = entry.monitoring.updates.reduce((a, b) =>
+                      Date.parse(a.occurredAt) >= Date.parse(b.occurredAt) ? a : b,
+                    );
+                    const scores = updateSymptoms(entry, latest);
+                    return (
+                      <div className="mt-5 rounded-2xl bg-accent-soft px-4 py-3">
+                        <p className="text-xs font-semibold text-accent">{t("Latest check-in")} · {when(latest.occurredAt)}</p>
+                        <ul className="mt-2 space-y-1 text-sm">
+                          {scores.map((s) => (
+                            <li key={s.name} className="flex justify-between gap-3">
+                              <span>{displayLabel(s.name)}</span>
+                              <span className="tabular-nums font-semibold">{s.severity}/10</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {latest.notes && <p className="mt-2 whitespace-pre-wrap break-words text-xs text-muted">{latest.notes}</p>}
+                      </div>
+                    );
+                  })()}
+                  {entry.monitoring && (() => {
+                    const checkpoints = monitoringCheckpoints(entry);
+                    const changes = monitoringChangeLog(entry);
+                    return (
+                      <div className="mt-5 space-y-3">
+                        <h3 className="text-sm font-semibold">{t("Check-in history")}</h3>
+                        <p className="text-xs text-muted">
+                          {t("Earlier check-ins stay here. Nothing is overwritten.")}
+                        </p>
+                        {checkpoints.length > 1 ? (
+                          <MonitoringIntensityChart checkpoints={checkpoints} />
+                        ) : (
+                          <p className="text-sm text-muted">
+                            {t("Add a check-in to see intensity over time.")}
+                          </p>
+                        )}
+                        {!!changes.length && <MonitoringChangeLog changes={changes} />}
+                      </div>
+                    );
+                  })()}
                 </Panel>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    className={primary}
-                    onClick={() => {
-                      setNotice("");
-                      setStep("chooseCategory");
-                    }}
-                  >
-                    {t("Add another entry")}
-                  </button>
-                  <button
-                    className={secondary}
-                    onClick={() => {
-                      setDraft(undefined);
-                      setNotice("");
-                      setCategory(entry.category??(entry.location?"body":entry.feelings?.some(f=>f.kind==="mood")?"mental":"physical"));
-                      setLocation(entry.location);
-                      setFeelings(entry.feelings ?? []);
-
-                      setStep("record");
-                    }}
-                  >
-                    {t("Edit entry")}
-                  </button>
-                  <button type="button" className={secondary} onClick={() => {
-                    if (!profile) return;
-                    try {
-                      download({ ...emptyDiary(), profiles: [profile], entries: [entry] }, "entry");
-                      setError("");
-                      setNotice("Check Downloads or Files to make sure the backup was saved.");
-                    } catch {
-                      setError("Could not export the backup. Please try again.");
-                    }
-                  }}>{t("Export entry (JSON)")}</button>
-                  <button
-                    className={secondary}
-                    onClick={() => {
-                      setStep("home");
-                      setEntryId(null);
-                    }}
-                  >
-                    {t("Back to diary")}
-                  </button>
-                  <button
-                    className="min-h-12 px-3 text-danger underline"
-                    onClick={() => setDeleteEntry(entry.id)}
-                  >
-                    {t("Delete entry")}
-                  </button>
+                <div className="space-y-4">
+                  {isMonitoringActive(entry) ? (
+                    <button
+                      type="button"
+                      className={`${primary} w-full`}
+                      onClick={() => {
+                        setNotice("");
+                        setStep("update");
+                      }}
+                    >
+                      {t("Add check-in")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${primary} w-full`}
+                      onClick={() => {
+                        setNotice("");
+                        setStep("chooseCategory");
+                      }}
+                    >
+                      {t("Add another entry")}
+                    </button>
+                  )}
+                  {isMonitoringActive(entry) && (
+                    <button
+                      type="button"
+                      className={`${secondary} w-full`}
+                      onClick={() => {
+                        setNotice("");
+                        setStep("chooseCategory");
+                      }}
+                    >
+                      {t("Add another entry")}
+                    </button>
+                  )}
+                  {entry.monitoring && (
+                    <p className="text-sm text-muted">
+                      {t("Use Add check-in to record how it feels now. Edit original only corrects the first record.")}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                    <button
+                      type="button"
+                      className="min-h-11 font-semibold text-accent underline underline-offset-4"
+                      onClick={() => {
+                        setDraft(undefined);
+                        setNotice("");
+                        setCategory(entry.category??(entry.location?"body":entry.feelings?.some(f=>f.kind==="mood")?"mental":"physical"));
+                        setLocation(entry.location);
+                        setFeelings(entry.feelings ?? []);
+                        setStep("record");
+                      }}
+                    >
+                      {entry.monitoring ? t("Edit original") : t("Edit")}
+                    </button>
+                    {canMonitor(entry) && (
+                      <button
+                        type="button"
+                        className="min-h-11 font-semibold text-accent underline underline-offset-4"
+                        onClick={async () => {
+                          const active = isMonitoringActive(entry);
+                          const next = {
+                            ...diary,
+                            entries: diary.entries.map((old) =>
+                              old.id === entry.id
+                                ? {
+                                    ...old,
+                                    monitoring: {
+                                      status: (active ? "ended" : "active") as "active" | "ended",
+                                      updates: old.monitoring?.updates ?? [],
+                                    },
+                                  }
+                                : old,
+                            ),
+                          };
+                          if (await commit(next)) {
+                            setNotice(active ? "Monitoring stopped." : "Monitoring started.");
+                          }
+                        }}
+                      >
+                        {isMonitoringActive(entry)
+                          ? t("Stop monitoring")
+                          : entry.monitoring
+                            ? t("Resume monitoring")
+                            : t("Start monitoring")}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="min-h-11 font-semibold text-accent underline underline-offset-4"
+                      onClick={() => {
+                        if (!profile) return;
+                        try {
+                          download({ ...emptyDiary(), profiles: [profile], entries: [entry] }, "entry");
+                          setError("");
+                          setNotice("Check Downloads or Files to make sure the backup was saved.");
+                        } catch {
+                          setError("Could not export the backup. Please try again.");
+                        }
+                      }}
+                    >
+                      {t("Export JSON")}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      className="min-h-11 text-sm font-semibold text-muted underline underline-offset-4"
+                      onClick={() => {
+                        setStep("home");
+                        setEntryId(null);
+                      }}
+                    >
+                      {t("Back to diary")}
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-11 text-sm text-danger underline underline-offset-4"
+                      onClick={() => setDeleteEntry(entry.id)}
+                    >
+                      {t("Delete entry")}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -1092,6 +1348,7 @@ function RecordForm({entry,relatedEntries,onOpenEntry,location,onSave,onLocation
  const [occurredAt,setOccurredAt]=useState(entry ? asLocalInput(entry.occurredAt) : localTime());
  const [duration,setDuration]=useState(entry?.duration??""),[notes,setNotes]=useState(entry?.notes??""),[photos,setPhotos]=useState(entry?.photos??[]),[busy,setBusy]=useState(false);
  const [temperature,setTemperature]=useState(entry?.temperature?.celsius.toString()??""),[unit,setUnit]=useState("C"),[method,setMethod]=useState(entry?.temperature?.method??"");
+ const [monitor,setMonitor]=useState(entry?.monitoring?.status === "active");
  const [bedtime, setBedtime] = useState(entry?.sleep ? asLocalInput(entry.sleep.bedtime) : "");
  const existingPeriod = category === "period" ? relatedEntries.find(item =>
    item.period && asLocalInput(item.occurredAt).slice(0, 10) === occurredAt.slice(0, 10),
@@ -1102,6 +1359,8 @@ function RecordForm({entry,relatedEntries,onOpenEntry,location,onSave,onLocation
    : category === "sleep" ? validSleep : isReadingCategory(category) || symptoms.length>0 || feelings.length>0;
  const snapshot=()=>({symptom:symptoms[0]?.name??entry?.symptom??"",severity:symptoms[0]?.severity??entry?.severity,symptoms:symptoms.length?symptoms:undefined,
    occurredAt:occurredAt && Number.isFinite(Date.parse(occurredAt))?new Date(occurredAt).toISOString():new Date().toISOString(),duration,notes,photos,
+   ...(entry?.monitoring?{monitoring:entry.monitoring}:{}),
+   monitor,
    ...(category==="temperature"?{temperature:{celsius:Math.round(celsius*100)/100,method}}:{})});
  const submit=(e:FormEvent)=>{e.preventDefault();if(busy)return;if((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value")==="back"){onBack(snapshot());return;}if (!valid) return;
    const values = snapshot();
@@ -1246,8 +1505,116 @@ function RecordForm({entry,relatedEntries,onOpenEntry,location,onSave,onLocation
        <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
      </div>
    </details>
+   {!isReadingCategory(category) && symptoms.length > 0 && <label className="flex items-start gap-3 rounded-2xl bg-panel p-4 text-sm">
+     <input className="mt-1 size-5 accent-accent" type="checkbox" checked={monitor} onChange={e=>setMonitor(e.target.checked)}/>
+     <span>
+       <span className="block font-semibold">{t("Keep monitoring over days")}</span>
+       <span className="mt-1 block text-muted">{t("Later check-ins append to this entry. Earlier details stay in the history.")}</span>
+     </span>
+   </label>}
    <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> {t("Save entry")}</button>
  </form>;
+}
+function MonitoringUpdateForm({
+  entry,
+  onSave,
+  onCancel,
+}: {
+  entry: Entry;
+  onSave: (update: MonitoringUpdate) => void;
+  onCancel: () => void;
+}) {
+  const initial = latestSymptoms(entry);
+  const [symptoms, setSymptoms] = useState<SymptomRating[]>(initial);
+  const [occurredAt, setOccurredAt] = useState(localTime());
+  const [notes, setNotes] = useState("");
+  const [photos, setPhotos] = useState<NonNullable<MonitoringUpdate["photos"]>>([]);
+  const [busy, setBusy] = useState(false);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!symptoms.length || busy) return;
+    const update: MonitoringUpdate = {
+      id: crypto.randomUUID(),
+      occurredAt:
+        occurredAt && Number.isFinite(Date.parse(occurredAt))
+          ? new Date(occurredAt).toISOString()
+          : new Date().toISOString(),
+      notes,
+      ...(photos.length ? { photos } : {}),
+      ...(entry.symptoms?.length
+        ? { symptoms, severity: symptoms[0].severity }
+        : { severity: symptoms[0].severity }),
+    };
+    onSave(update);
+  };
+  return (
+    <form className="space-y-5" onSubmit={submit}>
+      <Panel>
+        <h2 className="text-lg font-bold">{displayLabel(entryTitle(entry))}</h2>
+        <p className="mt-2 text-sm text-muted">
+          {entry.location
+            ? displayLabel(specificLocationName(entry.location))
+            : entry.category === "mental"
+              ? t("Mental health")
+              : t("General symptoms")}
+        </p>
+        <p className="mt-3 text-sm text-muted">
+          {t("Adds a new check-in for the same symptom. Earlier severity, notes and photos stay saved.")}
+        </p>
+      </Panel>
+      <div className="space-y-3">
+        {symptoms.map((item, index) => (
+          <ScoreControl
+            key={item.name}
+            label={displayLabel(item.name)}
+            ariaLabel={t("{name} severity", { name: displayLabel(item.name) })}
+            value={item.severity}
+            tone="pain"
+            onChange={(severity) =>
+              setSymptoms((rows) =>
+                rows.map((row, i) => (i === index ? { ...row, severity } : row)),
+              )
+            }
+          />
+        ))}
+      </div>
+      <Field label={t("When")}>
+        <input
+          className={input}
+          type="datetime-local"
+          required
+          value={occurredAt}
+          onChange={(e) => setOccurredAt(e.target.value)}
+        />
+      </Field>
+      <details className="rounded-xl bg-panel px-4" open={!!notes || !!photos.length}>
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
+          {t("Notes and photos (optional)")}
+        </summary>
+        <div className="space-y-4 pb-4">
+          <Field label={t("Notes (optional)")}>
+            <textarea
+              aria-label={t("Notes (optional)")}
+              className={input}
+              maxLength={2000}
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </Field>
+          <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy} />
+        </div>
+      </details>
+      <div className="flex flex-wrap gap-3">
+        <button type="button" className={secondary} onClick={onCancel}>
+          {t("Cancel")}
+        </button>
+        <button className={`${primary} ml-auto`} type="submit" disabled={busy}>
+          <Icon name="check" /> {t("Save check-in")}
+        </button>
+      </div>
+    </form>
+  );
 }
 function EntryList({
   entries,
@@ -1319,6 +1686,13 @@ function EntryList({
                 </span>
                 <span className="mt-1 block text-[.7rem] text-muted">
                   {when(e.occurredAt)}
+                  {e.monitoring
+                    ? ` · ${
+                        e.monitoring.status === "active"
+                          ? t("Monitoring")
+                          : t("Was monitoring")
+                      } · ${monitoringCheckpointCount(e)} ${t("check-ins")}`
+                    : ""}
                 </span>
                 {e.location && !!e.feelings?.length && (
                   <span className="mt-1 block text-[.7rem] text-muted">
@@ -1330,7 +1704,7 @@ function EntryList({
                   </span>
                 )}
               </span>
-              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} {t("symptoms")}</span> : e.kind !== "general" && !isReadingCategory(e.category) && <SeverityRating value={e.severity} />}
+              {e.symptoms && e.symptoms.length>1 ? <span className="shrink-0 text-xs font-bold">{e.symptoms.length} {t("symptoms")}</span> : e.kind !== "general" && !isReadingCategory(e.category) && <SeverityRating value={latestSymptoms(e)[0]?.severity ?? e.severity} />}
               <Icon name="chevron" className="size-3.5 text-line-strong" />
             </button>
           ))}

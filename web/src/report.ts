@@ -1,4 +1,5 @@
 import { entrySymptoms } from "./logging.ts";
+import { entryActivityTimes } from "./monitoring.ts";
 import { specificLocationName } from "./subregions.ts";
 import { isReadingCategory, readingLabels, type Entry } from "./store.ts";
 
@@ -61,8 +62,10 @@ export function reportBounds(range: ReportRange, from: string, through: string, 
 export function reportEntries(entries: Entry[], filter: string, bounds: ReportBounds | null) {
   if (!bounds) return [];
   return entries.filter(entry => {
-    const time = Date.parse(entry.occurredAt);
-    if ((bounds.start && time < +bounds.start) || (bounds.end && time > +bounds.end)) return false;
+    const inRange = entryActivityTimes(entry).some(time =>
+      (!bounds.start || time >= +bounds.start) && (!bounds.end || time <= +bounds.end),
+    );
+    if (!inRange) return false;
     return !filter || entryFilters(entry).some(option => option.id === filter);
   });
 }

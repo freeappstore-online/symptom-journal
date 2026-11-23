@@ -14,4 +14,5 @@ test("photo imports reject remote URLs, active formats, corrupt bytes, excess si
   assert.equal(validPhotos([bad]),false);const d=structuredClone(diary);d.entries[0].photos=[bad];assert.throws(()=>validateDiary(d));
  }
  assert.equal(validPhotos([photo,photo]),false);assert.equal(validPhotos([1,2,3,4]),false);
+ assert.equal(validPhotos([photo,{...photo,id:"photo-2"},{...photo,id:"photo-3"},{...photo,id:"photo-4"}]),true);
 });

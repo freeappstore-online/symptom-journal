@@ -2,7 +2,7 @@ import { t } from "./language";
 import { CameraCapture } from "./CameraCapture";
 import { useRef, useState } from "react";
 import { Modal } from "@freeappstore/sdk/ui";
-import { MAX_PHOTOS, type EntryPhoto } from "./photo-policy";
+import { type EntryPhoto } from "./photo-policy";
 import { preparePhoto } from "./photos";
 import { buttonPrimary, inputClass, Icon } from "./ui";
 export function PhotoEditor({value,onChange,onBusy}: {value: EntryPhoto[];onChange:(p:EntryPhoto[])=>void;onBusy:(b:boolean)=>void}) {
@@ -13,23 +13,22 @@ export function PhotoEditor({value,onChange,onBusy}: {value: EntryPhoto[];onChan
   const [dragging,setDragging] = useState(false);
   const add = async (files: File[]) => {
     if(!files.length || busyRef.current) return;
-    if(value.length+files.length>MAX_PHOTOS) {setError(`You can add ${MAX_PHOTOS-value.length} more photos.`);return;}
     busyRef.current=true;setError("");setBusy(true);onBusy(true);
     try { const prepared:EntryPhoto[]=[];for(const file of files) prepared.push(await preparePhoto(file));onChange([...value,...prepared]); }
     catch(e) {setError(e instanceof Error ? e.message : "Could not add photos.");}
     finally {busyRef.current=false;setBusy(false);onBusy(false);}
   };
   return <section className="space-y-3" aria-label={t("Entry photos")}>
-    <div className="flex items-center justify-between gap-3"><h2 className="text-base">{t("Photos")} <span className="font-normal text-muted">{t("(optional)")}</span></h2><span className="text-xs text-muted">{value.length}/{MAX_PHOTOS}</span></div>
+    <div className="flex items-center justify-between gap-3"><h2 className="text-base">{t("Photos")} <span className="font-normal text-muted">{t("(optional)")}</span></h2>{!!value.length && <span className="text-xs text-muted">{value.length}</span>}</div>
     <div className={`flex min-h-48 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-5 text-center ${dragging?"border-accent bg-accent-soft":"border-line-strong bg-panel"}`}
-      onDragOver={e=>{e.preventDefault();if(!busy && value.length<MAX_PHOTOS)setDragging(true);}}
+      onDragOver={e=>{e.preventDefault();if(!busy)setDragging(true);}}
       onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setDragging(false);}}
       onDrop={e=>{e.preventDefault();setDragging(false);void add(Array.from(e.dataTransfer.files));}}>
       <Icon name="photo" className="size-12 text-accent"/>
-      <p className="font-bold">{value.length===MAX_PHOTOS?t("All 3 photos added"):value.length?t("Add another photo"):t("Add photos to this entry")}</p>
+      <p className="font-bold">{value.length?t("Add another photo"):t("Add photos to this entry")}</p>
       <p className="hidden text-xs text-muted sm:block">{t("Drop image files here, or choose photos.")}</p>
-      <button type="button" className={buttonPrimary} disabled={busy || value.length>=MAX_PHOTOS} onClick={()=>upload.current?.click()}>{t("Choose photos")}</button>
-      <button type="button" className="flex min-h-11 items-center gap-2 text-sm font-semibold text-accent underline underline-offset-4 disabled:opacity-40" disabled={busy || value.length>=MAX_PHOTOS} onClick={()=>setCameraOpen(true)}><Icon name="camera" className="size-4"/>{t("Take a photo")}</button>
+      <button type="button" className={buttonPrimary} disabled={busy} onClick={()=>upload.current?.click()}>{t("Choose photos")}</button>
+      <button type="button" className="flex min-h-11 items-center gap-2 text-sm font-semibold text-accent underline underline-offset-4 disabled:opacity-40" disabled={busy} onClick={()=>setCameraOpen(true)}><Icon name="camera" className="size-4"/>{t("Take a photo")}</button>
     </div>
 
     {cameraOpen&&<CameraCapture onClose={()=>setCameraOpen(false)} onCapture={file=>{setCameraOpen(false);void add([file]);}} onChooseFile={()=>{setCameraOpen(false);upload.current?.click();}}/>}
