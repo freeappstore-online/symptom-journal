@@ -863,6 +863,43 @@ export default function App() {
                   })()}
                 </Panel>
                 <div className="space-y-4">
+                  {canMonitor(entry) && !isMonitoringActive(entry) && (
+                    <div className="space-y-3 rounded-3xl bg-accent-soft p-4">
+                      <div>
+                        <p className="text-sm font-semibold text-accent">
+                          {entry.monitoring ? t("Resume monitoring") : t("Track this symptom over time")}
+                        </p>
+                        <p className="mt-1 text-sm text-muted">
+                          {t("Start monitoring to add check-ins later without creating a new entry each day.")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${primary} w-full`}
+                        onClick={async () => {
+                          const next = {
+                            ...diary,
+                            entries: diary.entries.map((old) =>
+                              old.id === entry.id
+                                ? {
+                                    ...old,
+                                    monitoring: {
+                                      status: "active" as const,
+                                      updates: old.monitoring?.updates ?? [],
+                                    },
+                                  }
+                                : old,
+                            ),
+                          };
+                          if (await commit(next)) {
+                            setNotice("Monitoring started.");
+                          }
+                        }}
+                      >
+                        {entry.monitoring ? t("Resume monitoring") : t("Start monitoring")}
+                      </button>
+                    </div>
+                  )}
                   {isMonitoringActive(entry) ? (
                     <button
                       type="button"
@@ -877,7 +914,7 @@ export default function App() {
                   ) : (
                     <button
                       type="button"
-                      className={`${primary} w-full`}
+                      className={`${canMonitor(entry) ? secondary : primary} w-full`}
                       onClick={() => {
                         setNotice("");
                         setStep("chooseCategory");
@@ -918,12 +955,11 @@ export default function App() {
                     >
                       {entry.monitoring ? t("Edit original") : t("Edit")}
                     </button>
-                    {canMonitor(entry) && (
+                    {isMonitoringActive(entry) && (
                       <button
                         type="button"
-                        className="min-h-11 font-semibold text-accent underline underline-offset-4"
+                        className="min-h-11 font-semibold text-muted underline underline-offset-4"
                         onClick={async () => {
-                          const active = isMonitoringActive(entry);
                           const next = {
                             ...diary,
                             entries: diary.entries.map((old) =>
@@ -931,7 +967,7 @@ export default function App() {
                                 ? {
                                     ...old,
                                     monitoring: {
-                                      status: (active ? "ended" : "active") as "active" | "ended",
+                                      status: "ended" as const,
                                       updates: old.monitoring?.updates ?? [],
                                     },
                                   }
@@ -939,15 +975,11 @@ export default function App() {
                             ),
                           };
                           if (await commit(next)) {
-                            setNotice(active ? "Monitoring stopped." : "Monitoring started.");
+                            setNotice("Monitoring stopped.");
                           }
                         }}
                       >
-                        {isMonitoringActive(entry)
-                          ? t("Stop monitoring")
-                          : entry.monitoring
-                            ? t("Resume monitoring")
-                            : t("Start monitoring")}
+                        {t("Stop monitoring")}
                       </button>
                     )}
                     <button
@@ -1505,11 +1537,11 @@ function RecordForm({entry,relatedEntries,onOpenEntry,location,onSave,onLocation
        <PhotoEditor value={photos} onChange={setPhotos} onBusy={setBusy}/>
      </div>
    </details>
-   {!isReadingCategory(category) && symptoms.length > 0 && <label className="flex items-start gap-3 rounded-2xl bg-panel p-4 text-sm">
+   {!isReadingCategory(category) && symptoms.length > 0 && <label className={`flex items-start gap-3 rounded-2xl p-4 text-sm ${monitor ? "bg-accent-soft ring-2 ring-accent/30" : "bg-panel ring-1 ring-line-strong"}`}>
      <input className="mt-1 size-5 accent-accent" type="checkbox" checked={monitor} onChange={e=>setMonitor(e.target.checked)}/>
      <span>
        <span className="block font-semibold">{t("Keep monitoring over days")}</span>
-       <span className="mt-1 block text-muted">{t("Later check-ins append to this entry. Earlier details stay in the history.")}</span>
+       <span className="mt-1 block text-muted">{t("Turn this on if the symptom may continue. You can add check-ins later from Home.")}</span>
      </span>
    </label>}
    <button className={`${primary} w-full`} type="submit" disabled={busy||!valid}><Icon name="check"/> {t("Save entry")}</button>

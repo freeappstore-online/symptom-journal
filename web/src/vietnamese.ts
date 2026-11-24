@@ -1209,6 +1209,11 @@ export const vietnamese: Readonly<Record<string, string>> = {
   "Stop monitoring": "Dừng theo dõi",
   "Resume monitoring": "Theo dõi lại",
   "Start monitoring": "Bắt đầu theo dõi",
+  "Track this symptom over time": "Theo dõi triệu chứng này theo thời gian",
+  "Start monitoring to add check-ins later without creating a new entry each day.":
+    "Bắt đầu theo dõi để thêm lần kiểm tra sau mà không cần tạo ghi chép mới mỗi ngày.",
+  "Turn this on if the symptom may continue. You can add check-ins later from Home.":
+    "Bật tùy chọn này nếu triệu chứng có thể còn kéo dài. Bạn có thể thêm lần kiểm tra sau từ Trang chủ.",
   "Monitoring": "Đang theo dõi",
   "Was monitoring": "Đã theo dõi",
   "Update severity for this ongoing entry. Location and symptom names stay the same.":
@@ -1216,6 +1221,10 @@ export const vietnamese: Readonly<Record<string, string>> = {
   "Save check-in": "Lưu lần kiểm tra",
   "Choose symptoms, rate each one, and add notes or photos if useful. Check the date and save. Turn on Keep monitoring over days if the same symptom continues.": "Chọn triệu chứng, chấm mức độ, thêm ghi chú hoặc ảnh nếu cần. Kiểm tra ngày rồi lưu. Bật Tiếp tục theo dõi nhiều ngày nếu triệu chứng còn kéo dài.",
   "On later days, open Still monitoring on Home or the entry itself and add a check-in instead of a new entry.": "Những ngày sau, mở Đang theo dõi trên Trang chủ hoặc mở ghi chép và thêm lần kiểm tra thay vì tạo ghi chép mới.",
+  "If you skipped that option, open the entry and tap Start monitoring. On later days, use Still monitoring on Home or Add check-in on the entry.":
+    "Nếu bỏ qua tùy chọn đó, mở ghi chép và nhấn Bắt đầu theo dõi. Những ngày sau, dùng Đang theo dõi trên Trang chủ hoặc Thêm lần kiểm tra trên ghi chép.",
+  "Later check-ins append to this entry. Earlier details stay in the history.":
+    "Các lần kiểm tra sau được thêm vào ghi chép này. Chi tiết trước vẫn nằm trong lịch sử.",
   "Export JSON": "Xuất JSON",
   "Original details stay saved. Each check-in adds a new update for the same symptom.": "Chi tiết ban đầu vẫn được giữ. Mỗi lần kiểm tra thêm một cập nhật cho cùng triệu chứng.",
   "Latest check-in": "Lần kiểm tra gần nhất",
@@ -1224,7 +1233,6 @@ export const vietnamese: Readonly<Record<string, string>> = {
   "Check-in {n}": "Lần kiểm tra {n}",
   "Use Add check-in to record how it feels now. Edit original only corrects the first record.": "Dùng Thêm lần kiểm tra để ghi mức độ hiện tại. Sửa bản gốc chỉ để chỉnh ghi chép đầu tiên.",
   "Edit original": "Sửa bản gốc",
-  "Later check-ins append to this entry. Earlier details stay in the history.": "Các lần kiểm tra sau được thêm vào ghi chép này. Chi tiết trước vẫn nằm trong lịch sử.",
   "Adds a new check-in for the same symptom. Earlier severity and notes stay saved.": "Thêm một lần kiểm tra mới cho cùng triệu chứng. Mức độ và ghi chú trước vẫn được lưu.",
   "Add a check-in to the same symptom. Past details stay in history.": "Thêm lần kiểm tra cho cùng triệu chứng. Chi tiết trước vẫn nằm trong lịch sử.",
   "Matching entries include notes and photos. Monitored symptoms add intensity charts and a timed change log.": "Các ghi chép phù hợp gồm ghi chú và ảnh. Triệu chứng đang theo dõi thêm biểu đồ mức độ và nhật ký thay đổi theo thời gian.",
